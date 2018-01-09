@@ -23,11 +23,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URISyntaxException;
-import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -37,15 +35,13 @@ import javax.jcr.Session;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.vault.fs.Mounter;
-import org.apache.jackrabbit.vault.fs.api.PathFilterSet;
 import org.apache.jackrabbit.vault.fs.api.RepositoryAddress;
 import org.apache.jackrabbit.vault.fs.api.VaultFileSystem;
 import org.apache.jackrabbit.vault.fs.api.VaultFsConfig;
-import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
 import org.apache.jackrabbit.vault.fs.config.DefaultMetaInf;
-import org.apache.jackrabbit.vault.fs.config.DefaultWorkspaceFilter;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.fs.impl.AggregateManagerImpl;
+import org.apache.jackrabbit.vault.fs.io.Archive;
 import org.apache.jackrabbit.vault.fs.io.JarExporter;
 import org.apache.jackrabbit.vault.fs.spi.ProgressTracker;
 import org.apache.jackrabbit.vault.packaging.ExportOptions;
@@ -56,9 +52,6 @@ import org.apache.jackrabbit.vault.packaging.VaultPackage;
 import org.apache.jackrabbit.vault.packaging.events.PackageEvent;
 import org.apache.jackrabbit.vault.packaging.events.impl.PackageEventDispatcher;
 import org.apache.jackrabbit.vault.util.Constants;
-
-import static org.apache.jackrabbit.vault.packaging.registry.impl.JcrPackageRegistry.DEFAULT_PACKAGE_ROOT_PATH;
-import static org.apache.jackrabbit.vault.packaging.registry.impl.JcrPackageRegistry.DEFAULT_PACKAGE_ROOT_PATH_PREFIX;
 
 /**
  * Implements the package manager
@@ -171,7 +164,7 @@ public class PackageManagerImpl implements PackageManager {
             rewrap(opts, src, out);
             IOUtils.closeQuietly(out);
             success = true;
-            VaultPackage pack =  new ZipVaultPackage(file, isTmp);
+            VaultPackage pack = new ZipVaultPackage(file, isTmp);
             dispatch(PackageEvent.Type.REWRAPP, pack.getId(), null);
             return pack;
         } finally {
@@ -202,33 +195,33 @@ public class PackageManagerImpl implements PackageManager {
 
         // merge
         MetaInf inf = opts.getMetaInf();
-        ZipFile zip = new ZipFile(src.getFile(), ZipFile.OPEN_READ);
+        Archive archive = src.getArchive();
+        archive.open(false);
+        Iterator<Archive.Entry> allEntries = new AllEntries(archive);
         if (opts.getPostProcessor() == null) {
+
             // no post processor, we keep all files except the properties
-            Enumeration e = zip.entries();
-            while (e.hasMoreElements()) {
-                ZipEntry entry = (ZipEntry) e.nextElement();
-                String path = entry.getName();
+            while (allEntries.hasNext()) {
+                Archive.Entry entry = allEntries.next();
+                String path = entry.getRelPath();
                 if (!path.equals(Constants.META_DIR + "/" + Constants.PROPERTIES_XML)) {
-                    exporter.write(zip, entry);
+                    exporter.write(archive, entry);
                 }
             }
         } else {
             Set<String> keep = new HashSet<String>();
-            keep.add(Constants.META_DIR + "/");
+            keep.add(Constants.META_DIR);
             keep.add(Constants.META_DIR + "/" + Constants.NODETYPES_CND);
             keep.add(Constants.META_DIR + "/" + Constants.CONFIG_XML);
             keep.add(Constants.META_DIR + "/" + Constants.FILTER_XML);
-            Enumeration e = zip.entries();
-            while (e.hasMoreElements()) {
-                ZipEntry entry = (ZipEntry) e.nextElement();
-                String path = entry.getName();
+            while (allEntries.hasNext()) {
+                Archive.Entry entry = allEntries.next();
+                String path = entry.getRelPath();
                 if (!path.startsWith(Constants.META_DIR + "/") || keep.contains(path)) {
-                    exporter.write(zip, entry);
+                    exporter.write(archive, entry);
                 }
             }
         }
-        zip.close();
 
         // write updated properties
         ByteArrayOutputStream tmpOut = new ByteArrayOutputStream();
@@ -260,5 +253,63 @@ public class PackageManagerImpl implements PackageManager {
         dispatcher.dispatch(type, id, related);
     }
 
+    /**
+     * An {@link Iterator} implementation traversing all entries of a given root excluding the root itself. A parent
+     * is guaranteed to be returned before its children.
+     */
+    protected static class AllEntries implements Iterator<Archive.Entry> {
 
+        private Iterator<? extends Archive.Entry> children;
+        private AllEntries current;
+        private Archive.Entry next;
+
+        AllEntries(Archive archive) throws IOException {
+            this(archive.getRoot());
+            seek(); // we skip root
+        }
+
+        private AllEntries(Archive.Entry entry) {
+            this.children = entry.getChildren().iterator();
+            this.next = entry; // self
+        }
+
+        private void seek() {
+            next = null;
+            if (current == null) {
+                if (children.hasNext()) {
+                    Archive.Entry child = children.next();
+                    if (child.isDirectory()) {
+                        current = new AllEntries(child);
+                    } else {
+                        next = child;
+                    }
+                }
+            }
+            if (current != null) {
+                if (current.hasNext()) {
+                    next = current.next();
+                } else {
+                    current = null;
+                    seek();
+                }
+            }
+        }
+
+        @Override
+        public boolean hasNext() {
+            return next != null;
+        }
+
+        @Override
+        public Archive.Entry next() {
+            Archive.Entry current = next;
+            seek();
+            return current;
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
+    }
 }

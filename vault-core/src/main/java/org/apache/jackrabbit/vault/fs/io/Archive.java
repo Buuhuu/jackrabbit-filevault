@@ -126,6 +126,20 @@ public interface Archive {
         String getName();
 
         /**
+         * Returns an absolute path of the entry.
+         * @return
+         */
+        @Nonnull
+        String getPath();
+
+        /**
+         * Returns the relative path of the path returned by {@link Entry#getPath()}
+         * @return
+         */
+        @Nonnull
+        String getRelPath();
+
+        /**
          * Returns {@code true} if the entry designates a directory.
          * @return {@code true} if the entry designates a directory.
          */
@@ -146,5 +160,4 @@ public interface Archive {
         @CheckForNull
         Entry getChild(@Nonnull String name);
     }
-
 }

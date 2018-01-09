@@ -207,25 +207,36 @@ public class JarExporter extends AbstractExporter {
         jOut.closeEntry();
     }
 
-    public void write(ZipFile zip, ZipEntry entry) throws IOException {
-        track("A", entry.getName());
-        if (!compressedLevel) {
-            // The entry to be written is assumed to be incompressible
-            jOut.setLevel(NO_COMPRESSION);
-        }
-        exportInfo.update(ExportInfo.Type.ADD, entry.getName());
-        ZipEntry copy = new ZipEntry(entry);
-        copy.setCompressedSize(-1);
-        jOut.putNextEntry(copy);
-        if (!entry.isDirectory()) {
-            // copy
-            InputStream in = zip.getInputStream(entry);
-            IOUtils.copy(in, jOut);
-            in.close();
-        }
-        jOut.closeEntry();
-        if (!compressedLevel) {
-            jOut.setLevel(level);
+    public void write(Archive archive, Archive.Entry entry) throws IOException {
+        if (archive instanceof ZipArchive) {
+            ZipFile zipFile = ((ZipArchive) archive).getZipFile();
+            ZipEntry zipEntry = zipFile.getEntry(entry.getRelPath());
+            if (zipEntry == null) {
+                // the entry doesn't exists, so it might have been created as intermediate of an existing entry.
+                // as we are copying entries from one archive to another, we skip that case as well
+                return;
+            }
+            track("A", entry.getName());
+            if (!compressedLevel) {
+                // The entry to be written is assumed to be incompressible
+                jOut.setLevel(NO_COMPRESSION);
+            }
+            exportInfo.update(ExportInfo.Type.ADD, entry.getName());
+            ZipEntry copy = new ZipEntry(zipEntry);
+            copy.setCompressedSize(-1);
+            jOut.putNextEntry(copy);
+            if (!entry.isDirectory()) {
+                // copy
+                InputStream in = zipFile.getInputStream(zipEntry);
+                IOUtils.copy(in, jOut);
+                in.close();
+            }
+            jOut.closeEntry();
+            if (!compressedLevel) {
+                jOut.setLevel(level);
+            }
+        } else {
+            super.write(archive, entry);
         }
     }
 

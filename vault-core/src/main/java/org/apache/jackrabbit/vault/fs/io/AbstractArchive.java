@@ -19,6 +19,8 @@ package org.apache.jackrabbit.vault.fs.io;
 
 import java.io.IOException;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.vault.util.Constants;
 import org.apache.jackrabbit.vault.util.Text;
 
@@ -49,5 +51,29 @@ abstract class AbstractArchive implements Archive {
     public Archive getSubArchive(String rootPath, boolean asJcrRoot) throws IOException {
         Entry root = getEntry(rootPath);
         return root == null ? null : new SubArchive(this, root, asJcrRoot);
+    }
+
+    protected static abstract class AbstractEntry implements Entry {
+
+        protected final AbstractEntry parent;
+
+        protected AbstractEntry(AbstractEntry parent) {
+            this.parent = parent;
+        }
+
+        @Nonnull
+        public String getPath() {
+            return getPath(new StringBuilder()).toString();
+        }
+
+        @Nonnull
+        public String getRelPath() {
+            return getPath(new StringBuilder()).substring(1);
+        }
+
+        @Nonnull
+        protected StringBuilder getPath(@Nonnull StringBuilder sb) {
+            return parent == null ? sb : parent.getPath(sb).append('/').append(getName());
+        }
     }
 }

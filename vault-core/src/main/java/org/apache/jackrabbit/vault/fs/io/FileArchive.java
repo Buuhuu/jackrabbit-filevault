@@ -44,6 +44,7 @@ public class FileArchive extends AbstractArchive {
 
     private ExportRoot eRoot;
 
+    private OsEntry root;
     private OsEntry jcrRoot;
 
     public FileArchive(File rootDirectory) {
@@ -62,7 +63,8 @@ public class FileArchive extends AbstractArchive {
         if (!eRoot.isValid()) {
             throw new IOException("No " + Constants.ROOT_DIR + " found.");
         }
-        jcrRoot = new OsEntry(eRoot.getJcrRoot());
+        root = new OsEntry(null, eRoot.getRoot());
+        jcrRoot = new OsEntry(root, eRoot.getJcrRoot());
     }
 
     /**
@@ -87,7 +89,7 @@ public class FileArchive extends AbstractArchive {
      */
     @Override
     public Entry getRoot() throws IOException {
-        return new OsEntry(eRoot.getRoot());
+        return root;
     }
 
     /**
@@ -122,11 +124,12 @@ public class FileArchive extends AbstractArchive {
         return new FileInputSource(file);
     }
 
-    private static class OsEntry implements Entry {
+    private static class OsEntry extends AbstractEntry implements Entry {
 
         private final File file;
 
-        private OsEntry(File file) {
+        private OsEntry(OsEntry parent, File file) {
+            super(parent);
             this.file = file;
         }
 
@@ -157,7 +160,7 @@ public class FileArchive extends AbstractArchive {
             }
             List<Entry> ret = new ArrayList<Entry>(files.length);
             for (File file: files) {
-                ret.add(new OsEntry(file));
+                ret.add(new OsEntry(this, file));
             }
             return ret;
         }
@@ -168,7 +171,7 @@ public class FileArchive extends AbstractArchive {
         @Override
         public Entry getChild(String name) {
             File child = new File(file, name);
-            return child.exists() ? new OsEntry(child) : null;
+            return child.exists() ? new OsEntry(this, child) : null;
         }
     }
     

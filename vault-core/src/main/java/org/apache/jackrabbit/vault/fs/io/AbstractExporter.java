@@ -424,4 +424,8 @@ public abstract class AbstractExporter {
     public abstract void writeFile(VaultFile file, String relPath)
             throws RepositoryException, IOException;
 
+    public void write(Archive fromArchive, Archive.Entry fromEntry) throws IOException {
+        InputStream stream = fromArchive.openInputStream(fromEntry);
+        writeFile(stream, fromEntry.getRelPath());
+    }
 }

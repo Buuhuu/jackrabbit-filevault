@@ -131,7 +131,7 @@ public class ZipStreamArchive extends AbstractArchive {
 
         decompressed = new byte[maxBufferSize];
         pos = 0;
-        root = new EntryImpl("");
+        root = new EntryImpl(null, "");
         inf = new DefaultMetaInf();
 
         // scan the zip and copy data to temporary file
@@ -157,7 +157,7 @@ public class ZipStreamArchive extends AbstractArchive {
                             // copy stream
                             long pos = getPosition();
                             long len = copy(zin);
-                            je = je.add(new EntryImpl(names[i], safeGetTime(entry), pos, len));
+                            je = je.add(new EntryImpl(je, names[i], safeGetTime(entry), pos, len));
                         } else {
                             je = je.add(names[i]);
                         }
@@ -426,7 +426,7 @@ public class ZipStreamArchive extends AbstractArchive {
     /**
      * archive entry implementation
      */
-    private static class EntryImpl implements Entry {
+    private static class EntryImpl extends AbstractEntry implements Entry {
 
         public final String name;
 
@@ -438,14 +438,16 @@ public class ZipStreamArchive extends AbstractArchive {
 
         public Map<String, EntryImpl> children;
 
-        private EntryImpl(String name) {
+        private EntryImpl(EntryImpl parent, String name) {
+            super(parent);
             this.name = name;
             this.time = 0;
             pos = -1;
             len = 0;
         }
 
-        private EntryImpl(String name, long time, long pos, long len) {
+        private EntryImpl(EntryImpl parent, String name, long time, long pos, long len) {
+            super(parent);
             this.name = name;
             this.time = time;
             this.pos = pos;
@@ -480,7 +482,7 @@ public class ZipStreamArchive extends AbstractArchive {
                     return e;
                 }
             }
-            e = new EntryImpl(name);
+            e = new EntryImpl(this, name);
             children.put(name, e);
             return e;
         }

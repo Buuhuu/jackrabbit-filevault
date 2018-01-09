@@ -27,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -101,7 +102,7 @@ public class ZipArchive extends AbstractArchive {
             return;
         }
         jar = new JarFile(file);
-        root = new EntryImpl("", true);
+        root = new EntryImpl(null,"", true);
         inf = new DefaultMetaInf();
 
         Enumeration e = jar.entries();
@@ -242,6 +243,14 @@ public class ZipArchive extends AbstractArchive {
     }
 
     /**
+     * Returns an individual ZipEntry by its relative path.
+     * @return a ZipEntry
+     */
+    public ZipFile getZipFile() {
+        return jar;
+    }
+
+    /**
      * Returns the underlying file or {@code null} if it does not exist.
      * @return the file or null.
      */
@@ -266,7 +275,7 @@ public class ZipArchive extends AbstractArchive {
     /**
      * Implements the entry for this archive
      */
-    private static class EntryImpl implements Entry {
+    private static class EntryImpl extends AbstractEntry implements Entry {
 
         private final String name;
 
@@ -276,7 +285,8 @@ public class ZipArchive extends AbstractArchive {
 
         private Map<String, EntryImpl> children;
 
-        private EntryImpl(@Nonnull String name, boolean directory) {
+        private EntryImpl(EntryImpl parent, @Nonnull String name, boolean directory) {
+            super(parent);
             this.name = name;
             isDirectory = directory;
         }
@@ -298,7 +308,7 @@ public class ZipArchive extends AbstractArchive {
                     return ret;
                 }
             }
-            return add(new EntryImpl(name, isDirectory));
+            return add(new EntryImpl(this, name, isDirectory));
         }
 
         @Override
