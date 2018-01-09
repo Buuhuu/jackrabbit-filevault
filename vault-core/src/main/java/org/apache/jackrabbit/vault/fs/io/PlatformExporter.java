@@ -180,7 +180,7 @@ public class PlatformExporter extends AbstractExporter {
         exportInfo.update(ExportInfo.Type.MKDIR, dir.getPath());
     }
 
-    public static class Factory implements FileExporterFactory {
+    public static class Factory implements Exporter.FileExporterFactory {
         @Override
         public Exporter createExporter(File target, int compressionLevel) {
             return new PlatformExporter(target);

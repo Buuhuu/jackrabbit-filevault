@@ -66,7 +66,7 @@ import static org.apache.jackrabbit.vault.packaging.PackageProperties.NAME_VERSI
  * Generic context for exporters
  *
  */
-public abstract class AbstractExporter {
+public abstract class AbstractExporter implements Exporter {
 
     /**
      * default logger
