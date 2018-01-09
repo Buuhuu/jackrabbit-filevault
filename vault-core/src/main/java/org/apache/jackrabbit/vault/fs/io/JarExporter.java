@@ -240,5 +240,14 @@ public class JarExporter extends AbstractExporter {
         }
     }
 
-
+    public static class Factory implements FileExporterFactory, StreamExporterFactory {
+        @Override
+        public Exporter createExporter(File target, int compressionLevel) {
+            return new JarExporter(target, compressionLevel);
+        }
+        @Override
+        public Exporter createExporter(OutputStream target, int compressionLevel) {
+            return new JarExporter(target, compressionLevel);
+        }
+    }
 }

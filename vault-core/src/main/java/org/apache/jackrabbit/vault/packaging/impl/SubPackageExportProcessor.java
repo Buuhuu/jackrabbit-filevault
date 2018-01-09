@@ -35,6 +35,7 @@ import org.apache.jackrabbit.vault.fs.api.VaultFileSystem;
 import org.apache.jackrabbit.vault.fs.api.WorkspaceFilter;
 import org.apache.jackrabbit.vault.fs.config.DefaultWorkspaceFilter;
 import org.apache.jackrabbit.vault.fs.io.AbstractExporter;
+import org.apache.jackrabbit.vault.fs.io.Exporter;
 import org.apache.jackrabbit.vault.packaging.ExportPostProcessor;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -65,7 +66,7 @@ public class SubPackageExportProcessor implements ExportPostProcessor {
         this.session = session;
     }
 
-    public void process(AbstractExporter exporter) {
+    public void process(Exporter exporter) {
         try {
             for (Map.Entry<PackageId, String> pkg : subPackages.entrySet()) {
                 String nodePath = pkg.getValue();

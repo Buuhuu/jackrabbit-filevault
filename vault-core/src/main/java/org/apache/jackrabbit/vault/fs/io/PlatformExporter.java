@@ -73,7 +73,7 @@ public class PlatformExporter extends AbstractExporter {
     /**
      * {@inheritDoc}
      */
-    public void open() throws IOException, RepositoryException {
+    public void open() throws IOException {
         scan(new File(localParent, Constants.ROOT_DIR));
     }
 
@@ -180,4 +180,10 @@ public class PlatformExporter extends AbstractExporter {
         exportInfo.update(ExportInfo.Type.MKDIR, dir.getPath());
     }
 
+    public static class Factory implements FileExporterFactory {
+        @Override
+        public Exporter createExporter(File target, int compressionLevel) {
+            return new PlatformExporter(target);
+        }
+    }
 }

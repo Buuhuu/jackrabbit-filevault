@@ -42,6 +42,7 @@ import org.apache.jackrabbit.vault.fs.config.DefaultMetaInf;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.fs.impl.AggregateManagerImpl;
 import org.apache.jackrabbit.vault.fs.io.Archive;
+import org.apache.jackrabbit.vault.fs.io.Exporter;
 import org.apache.jackrabbit.vault.fs.io.JarExporter;
 import org.apache.jackrabbit.vault.fs.spi.ProgressTracker;
 import org.apache.jackrabbit.vault.packaging.ExportOptions;
@@ -109,6 +110,7 @@ public class PackageManagerImpl implements PackageManager {
      */
     public void assemble(Session s, ExportOptions opts, OutputStream out)
             throws IOException, RepositoryException {
+        Exporter.StreamExporterFactory exporterFactory = checkStreamExporterFactory(opts);
         RepositoryAddress addr;
         try {
             String mountPath = opts.getMountPath();
@@ -132,7 +134,7 @@ public class PackageManagerImpl implements PackageManager {
         }
 
         VaultFileSystem jcrfs = Mounter.mount(config, metaInf.getFilter(), addr, opts.getRootPath(), s);
-        JarExporter exporter = new JarExporter(out, opts.getCompressionLevel());
+        Exporter exporter = exporterFactory.createExporter(out, opts.getCompressionLevel());
         exporter.setProperties(metaInf.getProperties());
         if (opts.getListener() != null) {
             exporter.setVerbose(opts.getListener());
@@ -180,11 +182,12 @@ public class PackageManagerImpl implements PackageManager {
      */
     public void rewrap(ExportOptions opts, VaultPackage src, OutputStream out)
             throws IOException {
+        Exporter.StreamExporterFactory exporterFactory = checkStreamExporterFactory(opts);
         MetaInf metaInf = opts.getMetaInf();
         if (metaInf == null) {
             metaInf = new DefaultMetaInf();
         }
-        JarExporter exporter = new JarExporter(out, opts.getCompressionLevel());
+        Exporter exporter = exporterFactory.createExporter(out, opts.getCompressionLevel());
         exporter.open();
         exporter.setProperties(metaInf.getProperties());
         ProgressTracker tracker = null;
@@ -251,6 +254,15 @@ public class PackageManagerImpl implements PackageManager {
             return;
         }
         dispatcher.dispatch(type, id, related);
+    }
+
+    protected final Exporter.StreamExporterFactory checkStreamExporterFactory(ExportOptions opts) {
+        Exporter.ExporterFactory exporterFactory = opts.getExporterFactory();
+        if (!(exporterFactory instanceof Exporter.StreamExporterFactory)) {
+            throw new IllegalArgumentException("Expected an instance of StreamExporterFactory but got: " + exporterFactory);
+        } else {
+            return (Exporter.StreamExporterFactory)exporterFactory;
+        }
     }
 
     /**

@@ -48,6 +48,7 @@ import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.fs.io.AbstractExporter;
 import org.apache.jackrabbit.vault.fs.io.AccessControlHandling;
 import org.apache.jackrabbit.vault.fs.io.Archive;
+import org.apache.jackrabbit.vault.fs.io.Exporter;
 import org.apache.jackrabbit.vault.fs.io.Importer;
 import org.apache.jackrabbit.vault.packaging.Dependency;
 import org.apache.jackrabbit.vault.packaging.ExportPostProcessor;
@@ -966,7 +967,7 @@ public class JcrPackageDefinitionImpl implements JcrPackageDefinition {
             this.defNode = defNode;
         }
 
-        public void process(AbstractExporter exporter) {
+        public void process(Exporter exporter) {
             try {
                 // remove temporarily the 'unpacked' properties.
                 // todo: do differently as soon we can filter properties

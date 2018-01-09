@@ -399,31 +399,12 @@ public abstract class AbstractExporter {
     }
 
     /**
-     * Opens the exporter and initializes the undelying structures.
-     * @throws IOException if an I/O error occurs
-     * @throws RepositoryException if a repository error occurs
+     * Copies the given {@link org.apache.jackrabbit.vault.fs.io.Archive.Entry} from the given {@link Archive} to the newly exported one.
+     *
+     * @param fromArchive
+     * @param fromEntry
+     * @throws IOException
      */
-    public abstract void open() throws IOException, RepositoryException;
-
-    /**
-     * Closes the exporter and releases the undelying structures.
-     * @throws IOException if an I/O error occurs
-     * @throws RepositoryException if a repository error occurs
-     */
-    public abstract void close() throws IOException, RepositoryException;
-
-    public abstract void createDirectory(String relPath)
-            throws IOException;
-
-    public abstract void createDirectory(VaultFile file, String relPath)
-            throws RepositoryException, IOException;
-
-    public abstract void writeFile(InputStream in, String relPath)
-            throws IOException;
-
-    public abstract void writeFile(VaultFile file, String relPath)
-            throws RepositoryException, IOException;
-
     public void write(Archive fromArchive, Archive.Entry fromEntry) throws IOException {
         InputStream stream = fromArchive.openInputStream(fromEntry);
         writeFile(stream, fromEntry.getRelPath());

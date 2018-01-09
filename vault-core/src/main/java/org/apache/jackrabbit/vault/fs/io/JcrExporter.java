@@ -64,29 +64,37 @@ public class JcrExporter extends AbstractExporter {
     /**
      * {@inheritDoc}
      */
-    public void open() throws IOException, RepositoryException {
-        scan(localParent);
+    public void open() throws IOException {
+        try {
+            scan(localParent);
+        } catch (RepositoryException ex) {
+            throw new IOException(ex);
+        }
     }
 
     /**
      * {@inheritDoc}
      */
-    public void close() throws IOException, RepositoryException {
-        if (autoDeleteFiles) {
-            for (ExportInfo.Entry e: exportInfo.getEntries().values()) {
-                if (e.type == ExportInfo.Type.DELETE) {
-                    String relPath = PathUtil.getRelativePath(localParent.getPath(), e.path);
-                    try {
-                        Node node = localParent.getNode(relPath);
-                        node.remove();
-                        track("D", relPath);
-                    } catch (RepositoryException e1) {
-                        track(e1, relPath);
+    public void close() throws IOException {
+        try {
+            if (autoDeleteFiles) {
+                for (ExportInfo.Entry e: exportInfo.getEntries().values()) {
+                    if (e.type == ExportInfo.Type.DELETE) {
+                        String relPath = PathUtil.getRelativePath(localParent.getPath(), e.path);
+                        try {
+                            Node node = localParent.getNode(relPath);
+                            node.remove();
+                            track("D", relPath);
+                        } catch (RepositoryException e1) {
+                            track(e1, relPath);
+                        }
                     }
                 }
             }
+            localParent.getSession().save();
+        } catch (RepositoryException ex) {
+            throw new IOException(ex);
         }
-        localParent.getSession().save();
     }
 
     private void scan(Node dir) throws RepositoryException {
@@ -207,4 +215,11 @@ public class JcrExporter extends AbstractExporter {
         }
     }
 
+    public static class Factory implements NodeExporterFactory {
+
+        @Override
+        public Exporter createExporter(Node target, int compressionLevel) {
+            return new JcrExporter(target);
+        }
+    }
 }

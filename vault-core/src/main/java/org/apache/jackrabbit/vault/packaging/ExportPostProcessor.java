@@ -18,6 +18,7 @@
 package org.apache.jackrabbit.vault.packaging;
 
 import org.apache.jackrabbit.vault.fs.io.AbstractExporter;
+import org.apache.jackrabbit.vault.fs.io.Exporter;
 import org.osgi.annotation.versioning.ConsumerType;
 
 /**
@@ -30,5 +31,5 @@ public interface ExportPostProcessor {
      * Post process.
      * @param exporter the exporter that produces the package.
      */
-    void process(AbstractExporter exporter);
+    void process(Exporter exporter);
 }

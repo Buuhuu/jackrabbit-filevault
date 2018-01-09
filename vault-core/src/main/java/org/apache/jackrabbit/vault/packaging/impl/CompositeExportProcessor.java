@@ -21,6 +21,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.jackrabbit.vault.fs.io.AbstractExporter;
+import org.apache.jackrabbit.vault.fs.io.Exporter;
 import org.apache.jackrabbit.vault.packaging.ExportPostProcessor;
 
 /**
@@ -35,7 +36,7 @@ public class CompositeExportProcessor implements ExportPostProcessor {
     }
 
     @Override
-    public void process(AbstractExporter exporter) {
+    public void process(Exporter exporter) {
         for (ExportPostProcessor p: processors) {
             p.process(exporter);
         }

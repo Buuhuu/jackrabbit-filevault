@@ -21,6 +21,8 @@ import java.util.zip.Deflater;
 
 import org.apache.jackrabbit.vault.fs.api.ProgressTrackerListener;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
+import org.apache.jackrabbit.vault.fs.io.Exporter;
+import org.apache.jackrabbit.vault.fs.io.JarExporter;
 
 /**
  * Holds options used for exporting.
@@ -38,6 +40,8 @@ public class ExportOptions {
     private String mountPath;
 
     private int compressionLevel = Deflater.NO_COMPRESSION;
+
+    private Exporter.ExporterFactory exporterFactory = new JarExporter.Factory();
 
     /**
      * Returns the progress tracker listener.
@@ -143,5 +147,21 @@ public class ExportOptions {
      */
     public int getCompressionLevel() {
         return compressionLevel;
+    }
+
+    /**
+     * Defines the {@link org.apache.jackrabbit.vault.fs.io.Exporter.ExporterFactory} for the export.
+     * @param factory the ExporterFactory
+     */
+    public void setExporterFactory(Exporter.ExporterFactory factory) {
+        this.exporterFactory = factory;
+    }
+
+    /**
+     * Returns the {@link org.apache.jackrabbit.vault.fs.io.Exporter.ExporterFactory}
+     * @return the ExporterFactory
+     */
+    public Exporter.ExporterFactory getExporterFactory() {
+        return exporterFactory;
     }
 }
