@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Implements an archive that is based on a zip file.
  */
-public class ZipArchive extends AbstractArchive {
+public class ZipArchive extends AbstractArchive implements StoredArchive {
 
     /**
      * default logger

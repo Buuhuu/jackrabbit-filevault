@@ -32,6 +32,7 @@ import org.apache.jackrabbit.vault.fs.io.AccessControlHandling;
 import org.apache.jackrabbit.vault.fs.io.Archive;
 import org.apache.jackrabbit.vault.fs.io.ImportOptions;
 import org.apache.jackrabbit.vault.fs.io.Importer;
+import org.apache.jackrabbit.vault.fs.io.StoredArchive;
 import org.apache.jackrabbit.vault.fs.io.ZipArchive;
 import org.apache.jackrabbit.vault.packaging.InstallContext;
 import org.apache.jackrabbit.vault.packaging.InstallHookProcessor;
@@ -124,7 +125,7 @@ public class ZipVaultPackage extends PackagePropertiesImpl implements VaultPacka
      * @return the file of this package or {@code null}.
      */
     public File getFile() {
-        return (archive instanceof ZipArchive) ? ((ZipArchive) archive).getFile() : null;
+        return (archive instanceof StoredArchive) ? ((StoredArchive) archive).getFile() : null;
     }
 
     /**
@@ -142,7 +143,7 @@ public class ZipVaultPackage extends PackagePropertiesImpl implements VaultPacka
      * {@inheritDoc}
      */
     public long getSize() {
-        return (archive instanceof ZipArchive) ? ((ZipArchive) archive).getFileSize() : -1;
+        return (archive instanceof StoredArchive) ? ((StoredArchive) archive).getFileSize() : -1;
     }
 
     /**
