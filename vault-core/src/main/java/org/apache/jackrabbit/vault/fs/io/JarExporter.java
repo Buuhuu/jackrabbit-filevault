@@ -28,8 +28,11 @@ import java.util.Set;
 
 import javax.jcr.RepositoryException;
 
+import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.ArchiveOutputStream;
 import org.apache.commons.compress.archivers.jar.JarArchiveOutputStream;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
+import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
 import org.apache.commons.compress.archivers.zip.ZipFile;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.CloseShieldOutputStream;
@@ -55,7 +58,7 @@ import static java.util.zip.Deflater.NO_COMPRESSION;
  * The exporter uses the {@link PlatformNameFormat} for formatting the jcr file
  * names to local ones.
  */
-public class JarExporter extends AbstractExporter {
+public class JarExporter extends AbstractArchiveExporter<ZipArchiveOutputStream> {
 
     /**
      * Contains the compression levels for which the binaries are always compressed
@@ -63,8 +66,6 @@ public class JarExporter extends AbstractExporter {
      */
     private static final Set<Integer> COMPRESSED_LEVELS = new HashSet<Integer>(Arrays.asList(
             DEFAULT_COMPRESSION, NO_COMPRESSION, BEST_COMPRESSION));
-
-    private JarArchiveOutputStream jOut;
 
     private OutputStream out;
 
@@ -117,93 +118,48 @@ public class JarExporter extends AbstractExporter {
         this.level = level;
     }
 
-    /**
-     * Opens the exporter and initializes the undelying structures.
-     *
-     * @throws IOException if an I/O error occurs
-     */
-    public void open() throws IOException {
-        if (jOut == null) {
-            if (jarFile != null) {
-                jOut = new JarArchiveOutputStream(new FileOutputStream(jarFile));
-                jOut.setLevel(level);
-            } else if (out != null) {
-                jOut = new JarArchiveOutputStream(out);
-                jOut.setLevel(level);
-            } else {
-                throw new IllegalArgumentException("Either out or jarFile needs to be set.");
-            }
+    @Override
+    protected ZipArchiveOutputStream openArchiveOutputStream() throws IOException {
+        JarArchiveOutputStream outputStream;
+        if (jarFile != null) {
+            outputStream = new JarArchiveOutputStream(new FileOutputStream(jarFile));
+        } else if (out != null) {
+            outputStream = new JarArchiveOutputStream(out);
+        } else {
+            throw new IllegalArgumentException("Either out or jarFile needs to be set.");
         }
+
+        outputStream.setLevel(level);
+        return outputStream;
     }
 
-    public void close() throws IOException {
-        if (jOut != null) {
-            jOut.close();
-            jOut = null;
+    @Override
+    protected ArchiveEntry createEntry(String name) {
+        return new ZipArchiveEntry(name);
+    }
+
+    @Override
+    protected ArchiveEntry createEntry(VaultFile file, String name) {
+        Artifact a = file.getArtifact();
+        ZipArchiveEntry entry = new ZipArchiveEntry(name);
+        if (a.getLastModified() > 0) {
+            entry.setTime(a.getLastModified());
         }
-    }
-
-    public void createDirectory(VaultFile file, String relPath)
-            throws RepositoryException, IOException {
-        ZipArchiveEntry e = new ZipArchiveEntry(getPlatformFilePath(file, relPath) + "/");
-        jOut.putArchiveEntry(e);
-        jOut.closeArchiveEntry();
-        track("A", relPath);
-        exportInfo.update(ExportInfo.Type.MKDIR, e.getName());
-    }
-
-    public void createDirectory(String relPath) throws IOException {
-        ZipArchiveEntry e = new ZipArchiveEntry(relPath + "/");
-        jOut.putArchiveEntry(e);
-        jOut.closeArchiveEntry();
-        exportInfo.update(ExportInfo.Type.MKDIR, e.getName());
+        return entry;
     }
 
     public void writeFile(VaultFile file, String relPath)
             throws RepositoryException, IOException {
-        ZipArchiveEntry e = new ZipArchiveEntry(getPlatformFilePath(file, relPath));
-        Artifact a = file.getArtifact();
-        boolean compress = compressedLevel || CompressionUtil.isCompressible(a) >= 0;
+        boolean compress = compressedLevel || CompressionUtil.isCompressible(file.getArtifact()) >= 0;
         if (!compress) {
-            jOut.setLevel(NO_COMPRESSION);
+            archiveOut.setLevel(NO_COMPRESSION);
         }
-        if (a.getLastModified() > 0) {
-            e.setTime(a.getLastModified());
-        }
-        track("A", relPath);
-        exportInfo.update(ExportInfo.Type.ADD, e.getName());
-        jOut.putArchiveEntry(e);
-        switch (a.getPreferredAccess()) {
-            case NONE:
-                throw new RepositoryException("Artifact has no content.");
 
-            case SPOOL:
-                OutputStream nout = new CloseShieldOutputStream(jOut);
-                a.spool(nout);
-                break;
+        super.writeFile(file, relPath);
 
-            case STREAM:
-                nout = new CloseShieldOutputStream(jOut);
-                InputStream in = a.getInputStream();
-                IOUtils.copy(in, nout);
-                in.close();
-                break;
-        }
-        jOut.closeArchiveEntry();
         if (!compress) {
-            jOut.setLevel(level);
+            archiveOut.setLevel(level);
         }
-    }
-
-    public void writeFile(InputStream in, String relPath) throws IOException {
-        // The file input stream to be written is assumed to be compressible
-        ZipArchiveEntry e = new ZipArchiveEntry(relPath);
-        exportInfo.update(ExportInfo.Type.ADD, e.getName());
-        jOut.putArchiveEntry(e);
-        OutputStream nout = new CloseShieldOutputStream(jOut);
-        IOUtils.copy(in, nout);
-        in.close();
-        jOut.closeArchiveEntry();
     }
 
     public void write(Archive archive, Archive.Entry entry) throws IOException {
@@ -218,26 +174,24 @@ public class JarExporter extends AbstractExporter {
             track("A", entry.getName());
             if (!compressedLevel) {
                 // The entry to be written is assumed to be incompressible
-                jOut.setLevel(NO_COMPRESSION);
+                archiveOut.setLevel(NO_COMPRESSION);
             }
             exportInfo.update(ExportInfo.Type.ADD, entry.getName());
             ZipArchiveEntry copy = new ZipArchiveEntry(zipEntry);
             copy.setCompressedSize(-1);
-            jOut.putArchiveEntry(copy);
+            archiveOut.putArchiveEntry(copy);
             if (!entry.isDirectory()) {
                 // copy
                 InputStream in = zipFile.getInputStream(zipEntry);
-                IOUtils.copy(in, jOut);
+                IOUtils.copy(in, archiveOut);
                 in.close();
             }
-            jOut.closeArchiveEntry();
+            archiveOut.closeArchiveEntry();
             if (!compressedLevel) {
-                jOut.setLevel(level);
+                archiveOut.setLevel(level);
             }
         } else {
             super.write(archive, entry);
         }
     }
-
-
 }

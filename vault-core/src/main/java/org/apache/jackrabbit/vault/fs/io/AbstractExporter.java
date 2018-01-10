@@ -425,7 +425,11 @@ public abstract class AbstractExporter {
             throws RepositoryException, IOException;
 
     public void write(Archive fromArchive, Archive.Entry fromEntry) throws IOException {
-        InputStream stream = fromArchive.openInputStream(fromEntry);
-        writeFile(stream, fromEntry.getRelPath());
+        if (fromEntry.isDirectory()) {
+            createDirectory(fromEntry.getRelPath());
+        } else {
+            InputStream stream = fromArchive.openInputStream(fromEntry);
+            writeFile(stream, fromEntry.getRelPath());
+        }
     }
 }
