@@ -24,12 +24,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.vault.fs.api.VaultInputSource;
 import org.apache.jackrabbit.vault.fs.config.DefaultMetaInf;
@@ -75,10 +75,10 @@ public class MemoryArchive extends AbstractArchive implements InputStreamPump.Pu
     @Override
     public void run(InputStream in) throws Exception {
         // scan the zip and copy data to temporary file
-        ZipInputStream zin = new ZipInputStream(
+        ZipArchiveInputStream zin = new ZipArchiveInputStream(
                 new BufferedInputStream(in)
         );
-        ZipEntry entry;
+        ArchiveEntry entry;
         boolean hasRoot = false;
         while ((entry = zin.getNextEntry()) != null) {
             String name = entry.getName();
@@ -285,9 +285,9 @@ public class MemoryArchive extends AbstractArchive implements InputStreamPump.Pu
      * @param e the zip entry
      * @return the modification time
      */
-    private static long safeGetTime(ZipEntry e) {
+    private static long safeGetTime(ArchiveEntry e) {
         try {
-            return e.getTime();
+            return e.getLastModifiedDate().getTime();
         } catch (Exception e1) {
             return 0;
         }

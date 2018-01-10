@@ -26,11 +26,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 import javax.annotation.Nonnull;
 
+import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
+import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.CloseShieldInputStream;
@@ -135,10 +136,10 @@ public class ZipStreamArchive extends AbstractArchive {
         inf = new DefaultMetaInf();
 
         // scan the zip and copy data to temporary file
-        ZipInputStream zin = new ZipInputStream(in);
+        ZipArchiveInputStream zin = new ZipArchiveInputStream(in);
 
         try {
-            ZipEntry entry;
+            ArchiveEntry entry;
             while ((entry = zin.getNextEntry()) != null) {
                 String name = entry.getName();
                 // check for meta inf
@@ -508,9 +509,9 @@ public class ZipStreamArchive extends AbstractArchive {
      * @param e the zip entry
      * @return the modification time
      */
-    private static long safeGetTime(ZipEntry e) {
+    private static long safeGetTime(ArchiveEntry e) {
         try {
-            return e.getTime();
+            return e.getLastModifiedDate().getTime();
         } catch (Exception e1) {
             return 0;
         }

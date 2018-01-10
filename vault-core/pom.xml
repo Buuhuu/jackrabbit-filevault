@@ -170,6 +170,13 @@
             <scope>provided</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
+            <version>1.15</version>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- OSGi Annotations: @Version -->
         <dependency>
             <groupId>org.osgi</groupId>

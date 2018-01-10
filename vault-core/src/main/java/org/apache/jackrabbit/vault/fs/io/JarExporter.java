@@ -25,13 +25,12 @@ import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.jar.JarOutputStream;
-import java.util.zip.Deflater;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 
 import javax.jcr.RepositoryException;
 
+import org.apache.commons.compress.archivers.jar.JarArchiveOutputStream;
+import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
+import org.apache.commons.compress.archivers.zip.ZipFile;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.CloseShieldOutputStream;
 import org.apache.jackrabbit.vault.fs.api.Artifact;
@@ -45,13 +44,13 @@ import static java.util.zip.Deflater.NO_COMPRESSION;
 
 /**
  * Implements a Vault filesystem exporter that exports Vault files to a jar file.
- * The entries are stored compressed in the jar (as {@link ZipEntry} zip entries.
+ * The entries are stored compressed in the jar (as {@link ZipArchiveEntry} zip entries.
  * <p>
  * The exporter can optimize the export throughput for binaries, by avoiding to
  * compress incompressible binaries.
- * The optimization is enabled for all {@link Deflater} compression levels but
- * {@link Deflater#DEFAULT_COMPRESSION}, {@link Deflater#NO_COMPRESSION} and
- * {@link Deflater#BEST_COMPRESSION}.
+ * The optimization is enabled for all {@link java.util.zip.Deflater} compression levels but
+ * {@link java.util.zip.Deflater#DEFAULT_COMPRESSION}, {@link java.util.zip.Deflater#NO_COMPRESSION} and
+ * {@link java.util.zip.Deflater#BEST_COMPRESSION}.
  * <p>
  * The exporter uses the {@link PlatformNameFormat} for formatting the jcr file
  * names to local ones.
@@ -65,7 +64,7 @@ public class JarExporter extends AbstractExporter {
     private static final Set<Integer> COMPRESSED_LEVELS = new HashSet<Integer>(Arrays.asList(
             DEFAULT_COMPRESSION, NO_COMPRESSION, BEST_COMPRESSION));
 
-    private JarOutputStream jOut;
+    private JarArchiveOutputStream jOut;
 
     private OutputStream out;
 
@@ -126,10 +125,10 @@ public class JarExporter extends AbstractExporter {
     public void open() throws IOException {
         if (jOut == null) {
             if (jarFile != null) {
-                jOut = new JarOutputStream(new FileOutputStream(jarFile));
+                jOut = new JarArchiveOutputStream(new FileOutputStream(jarFile));
                 jOut.setLevel(level);
             } else if (out != null) {
-                jOut = new JarOutputStream(out);
+                jOut = new JarArchiveOutputStream(out);
                 jOut.setLevel(level);
             } else {
                 throw new IllegalArgumentException("Either out or jarFile needs to be set.");
@@ -146,23 +145,23 @@ public class JarExporter extends AbstractExporter {
 
     public void createDirectory(VaultFile file, String relPath)
             throws RepositoryException, IOException {
-        ZipEntry e = new ZipEntry(getPlatformFilePath(file, relPath) + "/");
-        jOut.putNextEntry(e);
-        jOut.closeEntry();
+        ZipArchiveEntry e = new ZipArchiveEntry(getPlatformFilePath(file, relPath) + "/");
+        jOut.putArchiveEntry(e);
+        jOut.closeArchiveEntry();
         track("A", relPath);
         exportInfo.update(ExportInfo.Type.MKDIR, e.getName());
     }
 
     public void createDirectory(String relPath) throws IOException {
-        ZipEntry e = new ZipEntry(relPath + "/");
-        jOut.putNextEntry(e);
-        jOut.closeEntry();
+        ZipArchiveEntry e = new ZipArchiveEntry(relPath + "/");
+        jOut.putArchiveEntry(e);
+        jOut.closeArchiveEntry();
         exportInfo.update(ExportInfo.Type.MKDIR, e.getName());
     }
 
     public void writeFile(VaultFile file, String relPath)
             throws RepositoryException, IOException {
-        ZipEntry e = new ZipEntry(getPlatformFilePath(file, relPath));
+        ZipArchiveEntry e = new ZipArchiveEntry(getPlatformFilePath(file, relPath));
         Artifact a = file.getArtifact();
         boolean compress = compressedLevel || CompressionUtil.isCompressible(a) >= 0;
         if (!compress) {
@@ -173,7 +172,7 @@ public class JarExporter extends AbstractExporter {
         }
         track("A", relPath);
         exportInfo.update(ExportInfo.Type.ADD, e.getName());
-        jOut.putNextEntry(e);
+        jOut.putArchiveEntry(e);
         switch (a.getPreferredAccess()) {
             case NONE:
                 throw new RepositoryException("Artifact has no content.");
@@ -190,7 +189,7 @@ public class JarExporter extends AbstractExporter {
                 in.close();
                 break;
         }
-        jOut.closeEntry();
+        jOut.closeArchiveEntry();
         if (!compress) {
             jOut.setLevel(level);
         }
@@ -198,19 +197,19 @@ public class JarExporter extends AbstractExporter {
 
     public void writeFile(InputStream in, String relPath) throws IOException {
         // The file input stream to be written is assumed to be compressible
-        ZipEntry e = new ZipEntry(relPath);
+        ZipArchiveEntry e = new ZipArchiveEntry(relPath);
         exportInfo.update(ExportInfo.Type.ADD, e.getName());
-        jOut.putNextEntry(e);
+        jOut.putArchiveEntry(e);
         OutputStream nout = new CloseShieldOutputStream(jOut);
         IOUtils.copy(in, nout);
         in.close();
-        jOut.closeEntry();
+        jOut.closeArchiveEntry();
     }
 
     public void write(Archive archive, Archive.Entry entry) throws IOException {
         if (archive instanceof ZipArchive) {
             ZipFile zipFile = ((ZipArchive) archive).getZipFile();
-            ZipEntry zipEntry = zipFile.getEntry(entry.getRelPath());
+            ZipArchiveEntry zipEntry = zipFile.getEntry(entry.getRelPath());
             if (zipEntry == null) {
                 // the entry doesn't exists, so it might have been created as intermediate of an existing entry.
                 // as we are copying entries from one archive to another, we skip that case as well
@@ -222,16 +221,16 @@ public class JarExporter extends AbstractExporter {
                 jOut.setLevel(NO_COMPRESSION);
             }
             exportInfo.update(ExportInfo.Type.ADD, entry.getName());
-            ZipEntry copy = new ZipEntry(zipEntry);
+            ZipArchiveEntry copy = new ZipArchiveEntry(zipEntry);
             copy.setCompressedSize(-1);
-            jOut.putNextEntry(copy);
+            jOut.putArchiveEntry(copy);
             if (!entry.isDirectory()) {
                 // copy
                 InputStream in = zipFile.getInputStream(zipEntry);
                 IOUtils.copy(in, jOut);
                 in.close();
             }
-            jOut.closeEntry();
+            jOut.closeArchiveEntry();
             if (!compressedLevel) {
                 jOut.setLevel(level);
             }

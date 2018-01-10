@@ -25,13 +25,12 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.jar.JarFile;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
+import org.apache.commons.compress.archivers.zip.ZipFile;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.vault.fs.api.VaultInputSource;
 import org.apache.jackrabbit.vault.fs.config.ConfigurationException;
@@ -71,7 +70,7 @@ public class ZipArchive extends AbstractArchive implements StoredArchive {
     /**
      * the jar file that is created upon {@link #open(boolean)}
      */
-    private JarFile jar;
+    private ZipFile jar;
 
     /**
      * the root entry of this archive
@@ -101,13 +100,13 @@ public class ZipArchive extends AbstractArchive implements StoredArchive {
         if (jar != null) {
             return;
         }
-        jar = new JarFile(file);
+        jar = new ZipFile(file);
         root = new EntryImpl(null,"", true);
         inf = new DefaultMetaInf();
 
-        Enumeration e = jar.entries();
+        Enumeration<ZipArchiveEntry> e = jar.getEntries();
         while (e.hasMoreElements()) {
-            ZipEntry entry = (ZipEntry) e.nextElement();
+            ZipArchiveEntry entry = e.nextElement();
             String path = entry.getName();
             // check for meta inf
             if (path.startsWith(Constants.META_DIR + "/")) {
@@ -158,7 +157,7 @@ public class ZipArchive extends AbstractArchive implements StoredArchive {
         if (e == null || e.zipEntryName == null) {
             return null;
         }
-        ZipEntry ze = jar.getEntry(e.zipEntryName);
+        ZipArchiveEntry ze = jar.getEntry(e.zipEntryName);
         if (ze == null) {
             throw new IOException("ZipEntry could not be found: " + e.zipEntryName);
         }
@@ -172,7 +171,7 @@ public class ZipArchive extends AbstractArchive implements StoredArchive {
         if (e == null || e.zipEntryName == null) {
             return null;
         }
-        final ZipEntry ze = jar.getEntry(e.zipEntryName);
+        final ZipArchiveEntry ze = jar.getEntry(e.zipEntryName);
         if (ze == null) {
             throw new IOException("ZipEntry could not be found: " + e.zipEntryName);
         }
