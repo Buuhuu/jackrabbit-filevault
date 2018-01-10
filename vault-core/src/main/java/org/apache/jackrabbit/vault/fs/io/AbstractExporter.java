@@ -403,14 +403,14 @@ public abstract class AbstractExporter {
      * @throws IOException if an I/O error occurs
      * @throws RepositoryException if a repository error occurs
      */
-    public abstract void open() throws IOException, RepositoryException;
+    public abstract void open() throws IOException;
 
     /**
      * Closes the exporter and releases the undelying structures.
      * @throws IOException if an I/O error occurs
      * @throws RepositoryException if a repository error occurs
      */
-    public abstract void close() throws IOException, RepositoryException;
+    public abstract void close() throws IOException;
 
     public abstract void createDirectory(String relPath)
             throws IOException;

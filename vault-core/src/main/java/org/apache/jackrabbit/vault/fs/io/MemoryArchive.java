@@ -29,6 +29,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.vault.fs.api.VaultInputSource;
@@ -74,10 +75,9 @@ public class MemoryArchive extends AbstractArchive implements InputStreamPump.Pu
      */
     @Override
     public void run(InputStream in) throws Exception {
+        AbstractStreamArchive streamArchive = (AbstractStreamArchive) new AutodetectStreamArchive(in).unwrap();
+        ArchiveInputStream zin = streamArchive.openArchiveInputStream();
         // scan the zip and copy data to temporary file
-        ZipArchiveInputStream zin = new ZipArchiveInputStream(
-                new BufferedInputStream(in)
-        );
         ArchiveEntry entry;
         boolean hasRoot = false;
         while ((entry = zin.getNextEntry()) != null) {

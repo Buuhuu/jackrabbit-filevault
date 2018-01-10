@@ -111,7 +111,7 @@ public class TarExporter extends AbstractArchiveExporter<TarArchiveOutputStream>
             // unknown size
             closeRecentlyBuffered();
             recentlyBuffered = new CappedBuffer();
-            spool(file.getArtifact(), recentlyBuffered);
+            super.spool(file.getArtifact(), recentlyBuffered);
             return createEntry(name, recentlyBuffered.getBytesWritten(), file.lastModified());
         } else {
             return createEntry(name, file.length(), file.lastModified());

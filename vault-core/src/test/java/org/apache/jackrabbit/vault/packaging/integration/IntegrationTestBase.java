@@ -83,14 +83,13 @@ import org.apache.jackrabbit.vault.fs.io.ImportOptions;
 import org.apache.jackrabbit.vault.fs.io.ZipArchive;
 import org.apache.jackrabbit.vault.fs.io.ZipStreamArchive;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
-import org.apache.jackrabbit.vault.packaging.JcrPackageManager;
 import org.apache.jackrabbit.vault.packaging.PackageException;
 import org.apache.jackrabbit.vault.packaging.PackageId;
 import org.apache.jackrabbit.vault.packaging.VaultPackage;
 import org.apache.jackrabbit.vault.packaging.events.impl.PackageEventDispatcherImpl;
 import org.apache.jackrabbit.vault.packaging.impl.ActivityLog;
 import org.apache.jackrabbit.vault.packaging.impl.JcrPackageManagerImpl;
-import org.apache.jackrabbit.vault.packaging.impl.ZipVaultPackage;
+import org.apache.jackrabbit.vault.packaging.impl.VaultPackageImpl;
 import org.apache.jackrabbit.vault.util.Text;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -358,7 +357,7 @@ public class IntegrationTestBase  {
     }
 
     public VaultPackage loadVaultPackage(String name) throws IOException {
-        return new ZipVaultPackage(getFileArchive(name), true);
+        return new VaultPackageImpl(getFileArchive(name), true);
     }
 
     public VaultPackage extractVaultPackage(String name) throws IOException, PackageException, RepositoryException {

@@ -5,15 +5,16 @@ import java.io.FileInputStream;
 import java.io.IOException;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.commons.compress.archivers.ArchiveInputStream;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.io.FileUtils;
 
-public class TarArchive extends AbstractStreamArchive {
+public class TarArchive extends AbstractStreamArchive implements StoredArchive {
 
     private final File file;
     private final boolean isTempFile;
+    private final String compression;
 
     /**
      * Creates a new archive that is based on the given zip file.
@@ -21,7 +22,16 @@ public class TarArchive extends AbstractStreamArchive {
      * @param tarFile the tar file
      */
     public TarArchive(@Nonnull File tarFile) {
-        this(tarFile, false);
+        this(tarFile, null, false);
+    }
+
+    /**
+     * Creates a new archive that is based on the given zip file.
+     *
+     * @param tarFile the tar file
+     */
+    public TarArchive(@Nonnull File tarFile, String compression) {
+        this(tarFile, compression, false);
     }
 
     /**
@@ -31,14 +41,19 @@ public class TarArchive extends AbstractStreamArchive {
      * @param isTempFile if {@code true} if the file is considered temporary and can be deleted after this archive is closed.
      */
     public TarArchive(@Nonnull File tarFile, boolean isTempFile) {
+        this(tarFile, null, isTempFile);
+    }
+
+    public TarArchive(@Nonnull File tarFile, String compression, boolean isTempFile) {
+        TarStreamArchive.requireNonDeflate(compression);
         this.file = tarFile;
         this.isTempFile = isTempFile;
+        this.compression = compression;
     }
 
     @Override
     protected ArchiveInputStream openArchiveInputStream() throws IOException {
-        // source will be null so
-        return new TarArchiveInputStream(new FileInputStream(file));
+        return TarStreamArchive.getDecompressedStream(compression, new FileInputStream(file));
     }
 
     @Override
@@ -48,4 +63,22 @@ public class TarArchive extends AbstractStreamArchive {
             FileUtils.deleteQuietly(file);
         }
     }
+
+    /**
+     * Returns the underlying file or {@code null} if it does not exist.
+     * @return the file or null.
+     */
+    @Nullable
+    public File getFile() {
+        return file.exists() ? file : null;
+    }
+
+    /**
+     * Returns the size of the underlying file or -1 if it does not exist.
+     * @return the file size
+     */
+    public long getFileSize() {
+        return file.length();
+    }
+
 }

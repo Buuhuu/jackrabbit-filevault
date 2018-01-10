@@ -73,7 +73,7 @@ public class PlatformExporter extends AbstractExporter {
     /**
      * {@inheritDoc}
      */
-    public void open() throws IOException, RepositoryException {
+    public void open() throws IOException {
         scan(new File(localParent, Constants.ROOT_DIR));
     }
 

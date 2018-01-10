@@ -19,7 +19,6 @@ package org.apache.jackrabbit.vault.packaging.impl;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 import java.util.regex.PatternSyntaxException;
@@ -30,6 +29,8 @@ import javax.jcr.Session;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.fs.io.AccessControlHandling;
 import org.apache.jackrabbit.vault.fs.io.Archive;
+import org.apache.jackrabbit.vault.fs.io.AutodetectArchive;
+import org.apache.jackrabbit.vault.fs.io.AutodetectStreamArchive;
 import org.apache.jackrabbit.vault.fs.io.ImportOptions;
 import org.apache.jackrabbit.vault.fs.io.Importer;
 import org.apache.jackrabbit.vault.fs.io.StoredArchive;
@@ -47,22 +48,22 @@ import org.slf4j.LoggerFactory;
  * Implements a vault package that is a zipped representation of a file vault
  * export.
  */
-public class ZipVaultPackage extends PackagePropertiesImpl implements VaultPackage {
+public class VaultPackageImpl extends PackagePropertiesImpl implements VaultPackage {
 
-    private static final Logger log = LoggerFactory.getLogger(ZipVaultPackage.class);
+    private static final Logger log = LoggerFactory.getLogger(VaultPackageImpl.class);
 
     private Archive archive;
 
-    public ZipVaultPackage(File file, boolean isTmpFile) throws IOException {
+    public VaultPackageImpl(File file, boolean isTmpFile) throws IOException {
         this(file, isTmpFile, false);
     }
 
-    public ZipVaultPackage(File file, boolean isTmpFile, boolean strict)
+    public VaultPackageImpl(File file, boolean isTmpFile, boolean strict)
             throws IOException {
-        this(new ZipArchive(file, isTmpFile), strict);
+        this(new AutodetectArchive(file, isTmpFile), strict);
     }
 
-    public ZipVaultPackage(Archive archive, boolean strict)
+    public VaultPackageImpl(Archive archive, boolean strict)
             throws IOException {
         this.archive = archive;
         if (strict) {

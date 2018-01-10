@@ -31,12 +31,16 @@ import org.apache.jackrabbit.vault.fs.io.Archive;
  * Wrapper class that hides all implementation details from the underlying archive.
  * this is mainly use to hide the {@link org.apache.jackrabbit.vault.fs.io.ZipArchive#getFile()}.
  */
-public final class ArchiveWrapper implements Archive {
+public class ArchiveWrapper implements Archive {
 
     private final Archive archive;
 
     public ArchiveWrapper(Archive archive) {
         this.archive = archive;
+    }
+
+    public Archive unwrap() {
+        return archive;
     }
 
     @Override

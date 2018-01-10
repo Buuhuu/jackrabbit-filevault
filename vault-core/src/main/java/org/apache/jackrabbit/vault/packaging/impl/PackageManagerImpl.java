@@ -41,6 +41,7 @@ import org.apache.jackrabbit.vault.fs.api.VaultFsConfig;
 import org.apache.jackrabbit.vault.fs.config.DefaultMetaInf;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.fs.impl.AggregateManagerImpl;
+import org.apache.jackrabbit.vault.fs.io.AbstractExporter;
 import org.apache.jackrabbit.vault.fs.io.Archive;
 import org.apache.jackrabbit.vault.fs.io.JarExporter;
 import org.apache.jackrabbit.vault.fs.spi.ProgressTracker;
@@ -75,7 +76,7 @@ public class PackageManagerImpl implements PackageManager {
      * {@inheritDoc}
      */
     public VaultPackage open(File file, boolean strict) throws IOException {
-        return new ZipVaultPackage(file, false, strict);
+        return new VaultPackageImpl(file, false, strict);
     }
 
     /**
@@ -95,7 +96,7 @@ public class PackageManagerImpl implements PackageManager {
             assemble(s, opts, out);
             IOUtils.closeQuietly(out);
             success = true;
-            return new ZipVaultPackage(file, isTmp);
+            return new VaultPackageImpl(file, isTmp);
         } finally {
             IOUtils.closeQuietly(out);
             if (isTmp && !success) {
@@ -132,7 +133,7 @@ public class PackageManagerImpl implements PackageManager {
         }
 
         VaultFileSystem jcrfs = Mounter.mount(config, metaInf.getFilter(), addr, opts.getRootPath(), s);
-        JarExporter exporter = new JarExporter(out, opts.getCompressionLevel());
+        AbstractExporter exporter = opts.getExporterFactory().createExporter(out, opts.getCompressionMethod(), opts.getCompressionLevel());
         exporter.setProperties(metaInf.getProperties());
         if (opts.getListener() != null) {
             exporter.setVerbose(opts.getListener());
@@ -164,7 +165,7 @@ public class PackageManagerImpl implements PackageManager {
             rewrap(opts, src, out);
             IOUtils.closeQuietly(out);
             success = true;
-            VaultPackage pack = new ZipVaultPackage(file, isTmp);
+            VaultPackage pack = new VaultPackageImpl(file, isTmp);
             dispatch(PackageEvent.Type.REWRAPP, pack.getId(), null);
             return pack;
         } finally {
@@ -184,7 +185,7 @@ public class PackageManagerImpl implements PackageManager {
         if (metaInf == null) {
             metaInf = new DefaultMetaInf();
         }
-        JarExporter exporter = new JarExporter(out, opts.getCompressionLevel());
+        AbstractExporter exporter = opts.getExporterFactory().createExporter(out, opts.getCompressionMethod(), opts.getCompressionLevel());
         exporter.open();
         exporter.setProperties(metaInf.getProperties());
         ProgressTracker tracker = null;

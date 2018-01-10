@@ -35,6 +35,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import javax.jcr.Binary;
 import javax.jcr.Node;
@@ -43,6 +45,8 @@ import javax.jcr.RepositoryException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
@@ -54,7 +58,19 @@ import static org.junit.Assert.assertTrue;
 /**
  * {@code TestEmptyPackage}...
  */
+@RunWith(Parameterized.class)
 public class TestBinarylessExport extends IntegrationTestBase {
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(new Object[][] {
+                { null },
+                { "snappy-framed" }
+        });
+    }
+
+    @Parameterized.Parameter
+    public String compressionMethod;
 
     private final static String SMALL_TEXT = "Lorem ipsum";
     private final static String BINARY_NODE_PATH = "/tmp/binaryless/node";
@@ -73,6 +89,14 @@ public class TestBinarylessExport extends IntegrationTestBase {
             buffer.append(buffer, 0, buffer.length());
         }
         BIG_TEXT = buffer.toString();
+    }
+
+    private ExportOptions newExportOptions() {
+        ExportOptions opts = new ExportOptions();
+        if (compressionMethod != null) {
+            opts.setCompressionMethod(compressionMethod);
+        }
+        return opts;
     }
 
     @Before
@@ -108,7 +132,7 @@ public class TestBinarylessExport extends IntegrationTestBase {
         String nodePath = BINARY_NODE_PATH;
         String property = BIG_BINARY_PROPERTY;
 
-        ExportOptions opts = new ExportOptions();
+        ExportOptions opts = newExportOptions();
         DefaultMetaInf inf = new DefaultMetaInf();
         DefaultWorkspaceFilter filter = new DefaultWorkspaceFilter();
         filter.add(new PathFilterSet(nodePath));
@@ -149,7 +173,7 @@ public class TestBinarylessExport extends IntegrationTestBase {
 
         String nodePath = FILE_NODE_PATH;
 
-        ExportOptions opts = new ExportOptions();
+        ExportOptions opts = newExportOptions();
         DefaultMetaInf inf = new DefaultMetaInf();
         DefaultWorkspaceFilter filter = new DefaultWorkspaceFilter();
         filter.add(new PathFilterSet(nodePath));
@@ -192,7 +216,7 @@ public class TestBinarylessExport extends IntegrationTestBase {
     public void importTwice() throws RepositoryException, IOException, PackageException {
         String nodePath = BINARY_NODE_PATH;
 
-        ExportOptions opts = new ExportOptions();
+        ExportOptions opts = newExportOptions();
         DefaultMetaInf inf = new DefaultMetaInf();
         DefaultWorkspaceFilter filter = new DefaultWorkspaceFilter();
         filter.add(new PathFilterSet(nodePath));

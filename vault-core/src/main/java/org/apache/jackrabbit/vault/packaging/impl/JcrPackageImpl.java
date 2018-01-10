@@ -111,7 +111,7 @@ public class JcrPackageImpl implements JcrPackage {
      * underlying package
      */
     @Nullable
-    private ZipVaultPackage pack;
+    private VaultPackageImpl pack;
 
     /**
      * underlying definition
@@ -124,7 +124,7 @@ public class JcrPackageImpl implements JcrPackage {
         this.node = node;
     }
 
-    public JcrPackageImpl(@Nonnull JcrPackageRegistry mgr, @Nullable Node node, @Nullable ZipVaultPackage pack) throws RepositoryException {
+    public JcrPackageImpl(@Nonnull JcrPackageRegistry mgr, @Nullable Node node, @Nullable VaultPackageImpl pack) throws RepositoryException {
         this.mgr = mgr;
         this.node = node;
         this.pack = pack;
@@ -316,7 +316,7 @@ public class JcrPackageImpl implements JcrPackage {
                         ((DefaultMetaInf) archive.getMetaInf()).setProperties(def.getMetaInf().getProperties());
                     }
                 }
-                pack = new ZipVaultPackage(archive, true);
+                pack = new VaultPackageImpl(archive, true);
             } else {
                 File tmpFile = File.createTempFile("vaultpack", ".zip");
                 FileOutputStream out = FileUtils.openOutputStream(tmpFile);
@@ -330,7 +330,7 @@ public class JcrPackageImpl implements JcrPackage {
                     IOUtils.closeQuietly(out);
                     bin.dispose();
                 }
-                pack = new ZipVaultPackage(tmpFile, true);
+                pack = new VaultPackageImpl(tmpFile, true);
             }
         }
         return pack;

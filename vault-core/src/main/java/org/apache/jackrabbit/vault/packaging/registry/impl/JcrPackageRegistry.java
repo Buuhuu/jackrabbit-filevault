@@ -23,7 +23,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
@@ -63,7 +62,7 @@ import org.apache.jackrabbit.vault.packaging.impl.JcrPackageDefinitionImpl;
 import org.apache.jackrabbit.vault.packaging.impl.JcrPackageImpl;
 import org.apache.jackrabbit.vault.packaging.impl.JcrPackageManagerImpl;
 import org.apache.jackrabbit.vault.packaging.impl.PackagePropertiesImpl;
-import org.apache.jackrabbit.vault.packaging.impl.ZipVaultPackage;
+import org.apache.jackrabbit.vault.packaging.impl.VaultPackageImpl;
 import org.apache.jackrabbit.vault.packaging.registry.DependencyReport;
 import org.apache.jackrabbit.vault.packaging.registry.ExecutionPlanBuilder;
 import org.apache.jackrabbit.vault.packaging.registry.PackageRegistry;
@@ -486,7 +485,7 @@ public class JcrPackageRegistry implements PackageRegistry {
     @Nonnull
     @Override
     public PackageId register(@Nonnull File file, boolean replace) throws IOException, PackageExistsException {
-        ZipVaultPackage pack = new ZipVaultPackage(file, false, true);
+        VaultPackageImpl pack = new VaultPackageImpl(file, false, true);
         try (JcrPackage pkg = upload(pack, replace)) {
             //noinspection resource
             return pkg.getPackage().getId();
@@ -501,7 +500,7 @@ public class JcrPackageRegistry implements PackageRegistry {
         throw new UnsupportedOperationException("linking files to repository persistence is not supported.");
     }
 
-    public JcrPackage upload(ZipVaultPackage pkg, boolean replace) throws RepositoryException, IOException, PackageExistsException {
+    public JcrPackage upload(VaultPackageImpl pkg, boolean replace) throws RepositoryException, IOException, PackageExistsException {
 
         // open zip packages
         if (pkg.getArchive().getJcrRoot() == null) {
@@ -662,7 +661,7 @@ public class JcrPackageRegistry implements PackageRegistry {
             IOUtils.closeQuietly(in);
         }
         dispatch(PackageEvent.Type.CREATE, pid, null);
-        return new JcrPackageImpl(this, node, (ZipVaultPackage) pack);
+        return new JcrPackageImpl(this, node, (VaultPackageImpl) pack);
     }
 
     /**

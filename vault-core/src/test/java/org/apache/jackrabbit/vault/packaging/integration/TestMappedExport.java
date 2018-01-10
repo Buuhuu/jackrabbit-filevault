@@ -19,6 +19,8 @@ package org.apache.jackrabbit.vault.packaging.integration;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Properties;
 
 import javax.jcr.RepositoryException;
@@ -32,6 +34,7 @@ import org.apache.jackrabbit.vault.packaging.JcrPackage;
 import org.apache.jackrabbit.vault.packaging.PackageException;
 import org.apache.jackrabbit.vault.packaging.VaultPackage;
 import org.junit.Test;
+import org.junit.runners.Parameterized;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -41,6 +44,25 @@ import static org.junit.Assert.assertTrue;
  */
 public class TestMappedExport extends IntegrationTestBase {
 
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(new Object[][] {
+                { null },
+                { "snappy-framed" }
+        });
+    }
+
+    @Parameterized.Parameter
+    public String compressionMethod;
+
+    private ExportOptions newExportOptions() {
+        ExportOptions opts = new ExportOptions();
+        if (compressionMethod != null) {
+            opts.setCompressionMethod(compressionMethod);
+        }
+        return opts;
+    }
+
     @Test
     public void exportMapped() throws RepositoryException, IOException, PackageException {
         JcrPackage pack = packMgr.upload(getStream("testpackages/tmp_foo_bar_test.zip"), false);
@@ -48,7 +70,7 @@ public class TestMappedExport extends IntegrationTestBase {
         pack.extract(getDefaultOptions());
         assertNodeExists("/tmp/foo/bar/test.txt");
 
-        ExportOptions opts = new ExportOptions();
+        ExportOptions opts = newExportOptions();
         DefaultMetaInf inf = new DefaultMetaInf();
         DefaultWorkspaceFilter filter = new DefaultWorkspaceFilter();
         filter.add(new PathFilterSet("/tmp/foo/bar"));

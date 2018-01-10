@@ -51,14 +51,14 @@ import org.slf4j.LoggerFactory;
 public abstract class AbstractStreamArchive extends AbstractArchive {
 
     /**
+     * max allowed package size for using a memory archive
+     */
+    protected static final int DEFAULT_BUFFER_SIZE = 1024*1024;
+
+    /**
      * default logger
      */
     private static final Logger log = LoggerFactory.getLogger(AbstractStreamArchive.class);
-
-    /**
-     * max allowed package size for using a memory archive
-     */
-    private static final int DEFAULT_BUFFER_SIZE = 1024*1024;
 
     /**
      * the temporary file if the stream needs to be copied to disk.

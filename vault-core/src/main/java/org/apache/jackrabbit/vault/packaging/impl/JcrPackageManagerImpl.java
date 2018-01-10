@@ -17,6 +17,8 @@
 
 package org.apache.jackrabbit.vault.packaging.impl;
 
+import static org.apache.jackrabbit.vault.packaging.registry.impl.JcrPackageRegistry.DEFAULT_PACKAGE_ROOT_PATH;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,8 +46,8 @@ import org.apache.jackrabbit.vault.fs.config.DefaultMetaInf;
 import org.apache.jackrabbit.vault.fs.impl.ArchiveWrapper;
 import org.apache.jackrabbit.vault.fs.impl.SubPackageFilterArchive;
 import org.apache.jackrabbit.vault.fs.io.Archive;
+import org.apache.jackrabbit.vault.fs.io.AutodetectStreamArchive;
 import org.apache.jackrabbit.vault.fs.io.ImportOptions;
-import org.apache.jackrabbit.vault.fs.io.ZipStreamArchive;
 import org.apache.jackrabbit.vault.packaging.Dependency;
 import org.apache.jackrabbit.vault.packaging.ExportOptions;
 import org.apache.jackrabbit.vault.packaging.JcrPackage;
@@ -61,8 +63,6 @@ import org.apache.jackrabbit.vault.packaging.events.impl.PackageEventDispatcher;
 import org.apache.jackrabbit.vault.packaging.registry.impl.JcrPackageRegistry;
 import org.apache.jackrabbit.vault.packaging.registry.impl.JcrRegisteredPackage;
 import org.apache.jackrabbit.vault.util.JcrConstants;
-
-import static org.apache.jackrabbit.vault.packaging.registry.impl.JcrPackageRegistry.DEFAULT_PACKAGE_ROOT_PATH;
 
 /**
  * Extends the {@code PackageManager} by JCR specific methods
@@ -198,7 +198,7 @@ public class JcrPackageManagerImpl extends PackageManagerImpl implements JcrPack
         } else {
             archive = new ArchiveWrapper(archive);
         }
-        ZipVaultPackage pkg = new ZipVaultPackage(archive, true);
+        VaultPackageImpl pkg = new VaultPackageImpl(archive, true);
 
         PackageId pid = pkg.getId();
         JcrPackage jcrPack = registry.upload(pkg, replace);
@@ -212,7 +212,7 @@ public class JcrPackageManagerImpl extends PackageManagerImpl implements JcrPack
             for (Archive.Entry e: spfArchive.getSubPackageEntries()) {
                 InputStream in = spfArchive.openInputStream(e);
                 if (in != null) {
-                    Archive subArchive = new ZipStreamArchive(in);
+                    Archive subArchive = new AutodetectStreamArchive(in);
                     PackageId[] subIds = extract(subArchive, options, replace);
                     ids.addAll(Arrays.asList(subIds));
                     subArchive.close();
@@ -241,7 +241,7 @@ public class JcrPackageManagerImpl extends PackageManagerImpl implements JcrPack
     @Override
     public JcrPackage upload(File file, boolean isTmpFile, boolean replace, String nameHint, boolean strict)
             throws RepositoryException, IOException {
-        ZipVaultPackage pack = new ZipVaultPackage(file, isTmpFile, strict);
+        VaultPackageImpl pack = new VaultPackageImpl(file, isTmpFile, strict);
         try {
             return registry.upload(pack, replace);
         } catch (PackageExistsException e) {
