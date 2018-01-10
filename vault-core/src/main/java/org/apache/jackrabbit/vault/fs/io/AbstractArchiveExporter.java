@@ -37,7 +37,33 @@ public abstract class AbstractArchiveExporter<O extends ArchiveOutputStream> ext
 
     protected abstract ArchiveEntry createEntry(String name);
 
-    protected abstract ArchiveEntry createEntry(VaultFile file, String name);
+    protected abstract ArchiveEntry createEntry(VaultFile file, String name) throws IOException, RepositoryException;
+
+    protected abstract ArchiveEntry createEntry(InputStream file, String name) throws IOException;
+
+    protected void spool(Artifact a, OutputStream out) throws IOException, RepositoryException {
+        switch (a.getPreferredAccess()) {
+        case NONE:
+            throw new RepositoryException("Artifact has no content.");
+
+        case SPOOL:
+            OutputStream nout = new CloseShieldOutputStream(out);
+            a.spool(nout);
+            break;
+
+        case STREAM:
+            nout = new CloseShieldOutputStream(out);
+            InputStream in = a.getInputStream();
+            IOUtils.copy(in, nout);
+            in.close();
+            break;
+        }
+    }
+
+    protected void spool(InputStream in, OutputStream out) throws IOException {
+        OutputStream nout = new CloseShieldOutputStream(archiveOut);
+        IOUtils.copy(in, nout);
+    }
 
     /**
      * Opens the exporter and initializes the undelying structures.
@@ -80,32 +106,16 @@ public abstract class AbstractArchiveExporter<O extends ArchiveOutputStream> ext
         track("A", relPath);
         exportInfo.update(ExportInfo.Type.ADD, e.getName());
         archiveOut.putArchiveEntry(e);
-        switch (a.getPreferredAccess()) {
-        case NONE:
-            throw new RepositoryException("Artifact has no content.");
-
-        case SPOOL:
-            OutputStream nout = new CloseShieldOutputStream(archiveOut);
-            a.spool(nout);
-            break;
-
-        case STREAM:
-            nout = new CloseShieldOutputStream(archiveOut);
-            InputStream in = a.getInputStream();
-            IOUtils.copy(in, nout);
-            in.close();
-            break;
-        }
+        spool(a, archiveOut);
         archiveOut.closeArchiveEntry();
     }
 
     public void writeFile(InputStream in, String relPath) throws IOException {
         // The file input stream to be written is assumed to be compressible
-        ArchiveEntry e = createEntry(relPath);
+        ArchiveEntry e = createEntry(in, relPath);
         exportInfo.update(ExportInfo.Type.ADD, e.getName());
         archiveOut.putArchiveEntry(e);
-        OutputStream nout = new CloseShieldOutputStream(archiveOut);
-        IOUtils.copy(in, nout);
+        spool(in, archiveOut);
         in.close();
         archiveOut.closeArchiveEntry();
     }

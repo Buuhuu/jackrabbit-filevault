@@ -17,6 +17,10 @@
 
 package org.apache.jackrabbit.vault.fs.io;
 
+import static java.util.zip.Deflater.BEST_COMPRESSION;
+import static java.util.zip.Deflater.DEFAULT_COMPRESSION;
+import static java.util.zip.Deflater.NO_COMPRESSION;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -29,21 +33,15 @@ import java.util.Set;
 import javax.jcr.RepositoryException;
 
 import org.apache.commons.compress.archivers.ArchiveEntry;
-import org.apache.commons.compress.archivers.ArchiveOutputStream;
 import org.apache.commons.compress.archivers.jar.JarArchiveOutputStream;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
 import org.apache.commons.compress.archivers.zip.ZipFile;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.output.CloseShieldOutputStream;
 import org.apache.jackrabbit.vault.fs.api.Artifact;
 import org.apache.jackrabbit.vault.fs.api.VaultFile;
 import org.apache.jackrabbit.vault.fs.impl.io.CompressionUtil;
 import org.apache.jackrabbit.vault.util.PlatformNameFormat;
-
-import static java.util.zip.Deflater.BEST_COMPRESSION;
-import static java.util.zip.Deflater.DEFAULT_COMPRESSION;
-import static java.util.zip.Deflater.NO_COMPRESSION;
 
 /**
  * Implements a Vault filesystem exporter that exports Vault files to a jar file.
@@ -146,6 +144,11 @@ public class JarExporter extends AbstractArchiveExporter<ZipArchiveOutputStream>
             entry.setTime(a.getLastModified());
         }
         return entry;
+    }
+
+    @Override
+    protected ArchiveEntry createEntry(InputStream file, String name) {
+        return createEntry(name); // we don't get further information about the entry from the InputStream.
     }
 
     public void writeFile(VaultFile file, String relPath)
