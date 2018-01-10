@@ -30,12 +30,14 @@ import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
  */
 public class ZipStreamArchive extends AbstractStreamArchive {
 
+    private final InputStream in;
+
     /**
      * Creates an ew archive stream archive on the given input stream.
      * @param in the input stream to read from.
      */
     public ZipStreamArchive(@Nonnull InputStream in) {
-        super(in);
+        this.in = in;
     }
 
     /**
@@ -44,11 +46,12 @@ public class ZipStreamArchive extends AbstractStreamArchive {
      * @param maxBufferSize size of buffer to keep content in memory.
      */
     public ZipStreamArchive(@Nonnull InputStream in, int maxBufferSize) {
-        super(in, maxBufferSize);
+        super(maxBufferSize);
+        this.in = in;
     }
 
     @Override
-    protected ArchiveInputStream openArchiveInputStream(InputStream source) {
-        return new ZipArchiveInputStream(source);
+    protected ArchiveInputStream openArchiveInputStream() {
+        return new ZipArchiveInputStream(in);
     }
 }

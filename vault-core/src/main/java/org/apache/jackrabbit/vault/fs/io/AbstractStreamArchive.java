@@ -61,11 +61,6 @@ public abstract class AbstractStreamArchive extends AbstractArchive {
     private static final int DEFAULT_BUFFER_SIZE = 1024*1024;
 
     /**
-     * the input stream that is consumed in this archive
-     */
-    private InputStream in;
-
-    /**
      * the temporary file if the stream needs to be copied to disk.
      */
     private File tmpFile;
@@ -107,23 +102,20 @@ public abstract class AbstractStreamArchive extends AbstractArchive {
 
     /**
      * Creates an ew archive stream archive on the given input stream.
-     * @param in the input stream to read from.
      */
-    protected AbstractStreamArchive(@Nonnull InputStream in) {
-        this(in, DEFAULT_BUFFER_SIZE);
+    protected AbstractStreamArchive() {
+        this(DEFAULT_BUFFER_SIZE);
     }
 
     /**
      * Creates an ew archive stream archive on the given input stream.
-     * @param in the input stream to read from.
      * @param maxBufferSize size of buffer to keep content in memory.
      */
-    protected AbstractStreamArchive(@Nonnull InputStream in, int maxBufferSize) {
-        this.in = in;
+    protected AbstractStreamArchive(int maxBufferSize) {
         this.maxBufferSize = maxBufferSize;
     }
 
-    protected abstract ArchiveInputStream openArchiveInputStream(InputStream source);
+    protected abstract ArchiveInputStream openArchiveInputStream() throws IOException;
 
     @Override
     public void open(boolean strict) throws IOException {
@@ -137,7 +129,7 @@ public abstract class AbstractStreamArchive extends AbstractArchive {
         inf = new DefaultMetaInf();
 
         // scan the archive and copy data to temporary file
-        ArchiveInputStream zin = openArchiveInputStream(in);
+        ArchiveInputStream zin = openArchiveInputStream();
 
         try {
             ArchiveEntry entry;
