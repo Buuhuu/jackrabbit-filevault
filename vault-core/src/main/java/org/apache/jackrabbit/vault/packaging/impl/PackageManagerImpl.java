@@ -42,6 +42,8 @@ import org.apache.jackrabbit.vault.fs.config.DefaultMetaInf;
 import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.fs.impl.AggregateManagerImpl;
 import org.apache.jackrabbit.vault.fs.io.Archive;
+import org.apache.jackrabbit.vault.fs.io.Compression;
+import org.apache.jackrabbit.vault.fs.io.CompressionExporter;
 import org.apache.jackrabbit.vault.fs.io.JarExporter;
 import org.apache.jackrabbit.vault.fs.spi.ProgressTracker;
 import org.apache.jackrabbit.vault.packaging.ExportOptions;
@@ -132,7 +134,7 @@ public class PackageManagerImpl implements PackageManager {
         }
 
         VaultFileSystem jcrfs = Mounter.mount(config, metaInf.getFilter(), addr, opts.getRootPath(), s);
-        JarExporter exporter = new JarExporter(out, opts.getCompressionLevel());
+        CompressionExporter<?, ?> exporter = getExporter(out, opts);
         exporter.setProperties(metaInf.getProperties());
         if (opts.getListener() != null) {
             exporter.setVerbose(opts.getListener());
@@ -184,7 +186,7 @@ public class PackageManagerImpl implements PackageManager {
         if (metaInf == null) {
             metaInf = new DefaultMetaInf();
         }
-        JarExporter exporter = new JarExporter(out, opts.getCompressionLevel());
+        CompressionExporter<?, ?> exporter = getExporter(out, opts);
         exporter.open();
         exporter.setProperties(metaInf.getProperties());
         ProgressTracker tracker = null;
@@ -235,6 +237,14 @@ public class PackageManagerImpl implements PackageManager {
             opts.getPostProcessor().process(exporter);
         }
         exporter.close();
+    }
+
+    protected CompressionExporter<?, ?> getExporter(OutputStream outputStream, ExportOptions opts) {
+        if (opts.getCompression() == null) {
+            return new JarExporter(outputStream, opts.getCompressionLevel());
+        } else {
+            return new CompressionExporter<Compression.Entry, Compression>(outputStream, opts.getCompression(), opts.getCompressionLevel());
+        }
     }
 
     @Nullable
