@@ -17,8 +17,12 @@
 
 package org.apache.jackrabbit.vault.packaging.impl;
 
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.zip.Deflater;
 
 import javax.annotation.Nonnull;
 
@@ -46,7 +50,16 @@ public class DefaultExporterFactory {
 
             if ("snappy-framed".equals(compressionMethod)) {
                 try {
-                    new TarExporter(new SnappyFramedOutputStream(outputStream));
+                    // compression ratio to achieve is between 0 and 1
+                    double ratio;
+                    if (compressionLevel < 0) {
+                        ratio = SnappyFramedOutputStream.DEFAULT_MIN_COMPRESSION_RATIO;
+                    } else {
+                        // Deflater#BEST_SPEED is 1, best speed for snappy is a min ratio 1.0 - 0, so reduce the compression level by 1.
+                        compressionLevel = Math.max(0, compressionLevel - 1);
+                        ratio = 1.0 - Math.min(1.0, ((double) compressionLevel) / Deflater.BEST_COMPRESSION);
+                    }
+                    new TarExporter(new SnappyFramedOutputStream(outputStream, SnappyFramedOutputStream.DEFAULT_BLOCK_SIZE, ratio));
                 } catch (NoClassDefFoundError ex) {
                     LOG.trace("Native (JNI) snappy implementation not found.", ex);
                 }
@@ -56,5 +69,17 @@ public class DefaultExporterFactory {
         } catch (CompressorException ex) {
             throw new IllegalArgumentException("Unknown compression format.");
         }
+    }
+
+    @Nonnull
+    public AbstractExporter createExporter(@Nonnull File file, @Nonnull String compressionMethod, int compressionLevel)
+            throws IOException {
+
+        if ("deflate".equals(compressionMethod)) {
+            return new JarExporter(file, compressionLevel);
+        }
+
+        OutputStream fileOut = new BufferedOutputStream(new FileOutputStream(file));
+        return createExporter(fileOut, compressionMethod, compressionLevel);
     }
 }

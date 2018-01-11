@@ -95,13 +95,18 @@ public class TarExporter extends AbstractArchiveExporter<TarArchiveOutputStream>
 
     @Override
     protected TarArchiveOutputStream openArchiveOutputStream() throws IOException {
+        TarArchiveOutputStream tarOut;
         if (file != null) {
-            return new TarArchiveOutputStream(new FileOutputStream(file));
+            tarOut = new TarArchiveOutputStream(new FileOutputStream(file));
         } else if (out != null) {
-            return new TarArchiveOutputStream(out);
+            tarOut = new TarArchiveOutputStream(out);
         } else {
             throw new IllegalArgumentException("Either out or jarFile needs to be set.");
         }
+
+        tarOut.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_POSIX);
+        tarOut.setLongFileMode(TarArchiveOutputStream.LONGFILE_POSIX);
+        return tarOut;
     }
 
     @Override
@@ -158,7 +163,7 @@ public class TarExporter extends AbstractArchiveExporter<TarArchiveOutputStream>
         private CountingOutputStream out;
 
         CappedBuffer() {
-            inMemory = new ByteArrayOutputStream();
+            inMemory = new ByteArrayOutputStream(8196); // 8kb
             out = new CountingOutputStream(inMemory);
         }
 
@@ -196,11 +201,13 @@ public class TarExporter extends AbstractArchiveExporter<TarArchiveOutputStream>
         @Override
         public void write(byte[] b, int off, int len) throws IOException {
             out.write(b, off, len);
+            checkOverflow();
         }
 
         @Override
         public void write(int b) throws IOException {
             out.write(b);
+            checkOverflow();
         }
 
         @Override
