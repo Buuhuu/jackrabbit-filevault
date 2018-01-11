@@ -17,10 +17,6 @@
 
 package org.apache.jackrabbit.vault.fs.io;
 
-import static java.util.zip.Deflater.BEST_COMPRESSION;
-import static java.util.zip.Deflater.DEFAULT_COMPRESSION;
-import static java.util.zip.Deflater.NO_COMPRESSION;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -42,6 +38,10 @@ import org.apache.jackrabbit.vault.fs.api.Artifact;
 import org.apache.jackrabbit.vault.fs.api.VaultFile;
 import org.apache.jackrabbit.vault.fs.impl.io.CompressionUtil;
 import org.apache.jackrabbit.vault.util.PlatformNameFormat;
+
+import static java.util.zip.Deflater.BEST_COMPRESSION;
+import static java.util.zip.Deflater.DEFAULT_COMPRESSION;
+import static java.util.zip.Deflater.NO_COMPRESSION;
 
 /**
  * Implements a Vault filesystem exporter that exports Vault files to a jar file.
@@ -153,7 +153,9 @@ public class JarExporter extends AbstractArchiveExporter<ZipArchiveOutputStream>
 
     public void writeFile(VaultFile file, String relPath)
             throws RepositoryException, IOException {
-        boolean compress = compressedLevel || CompressionUtil.isCompressible(file.getArtifact()) >= 0;
+        boolean compress = compressedLevel
+                || !CompressionUtil.ENV_SUPPORTS_COMPRESSION_LEVEL_CHANGE
+                || CompressionUtil.isCompressible(file.getArtifact()) >= 0;
         if (!compress) {
             archiveOut.setLevel(NO_COMPRESSION);
         }
@@ -175,7 +177,8 @@ public class JarExporter extends AbstractArchiveExporter<ZipArchiveOutputStream>
                 return;
             }
             track("A", entry.getName());
-            if (!compressedLevel) {
+            boolean changeCompressionLevel = !compressedLevel && CompressionUtil.ENV_SUPPORTS_COMPRESSION_LEVEL_CHANGE;
+            if (changeCompressionLevel) {
                 // The entry to be written is assumed to be incompressible
                 archiveOut.setLevel(NO_COMPRESSION);
             }
@@ -190,7 +193,7 @@ public class JarExporter extends AbstractArchiveExporter<ZipArchiveOutputStream>
                 in.close();
             }
             archiveOut.closeArchiveEntry();
-            if (!compressedLevel) {
+            if (changeCompressionLevel) {
                 archiveOut.setLevel(level);
             }
         } else {
@@ -201,7 +204,8 @@ public class JarExporter extends AbstractArchiveExporter<ZipArchiveOutputStream>
     @Deprecated
     public void write(java.util.zip.ZipFile zip, java.util.zip.ZipEntry entry) throws IOException {
         track("A", entry.getName());
-        if (!compressedLevel) {
+        boolean changeCompressionLevel = !compressedLevel && CompressionUtil.ENV_SUPPORTS_COMPRESSION_LEVEL_CHANGE;
+        if (changeCompressionLevel) {
             // The entry to be written is assumed to be incompressible
             archiveOut.setLevel(NO_COMPRESSION);
         }
@@ -216,7 +220,7 @@ public class JarExporter extends AbstractArchiveExporter<ZipArchiveOutputStream>
             in.close();
         }
         archiveOut.closeArchiveEntry();
-        if (!compressedLevel) {
+        if (changeCompressionLevel) {
             archiveOut.setLevel(level);
         }
     }
