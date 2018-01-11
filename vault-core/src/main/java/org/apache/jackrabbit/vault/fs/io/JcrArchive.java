@@ -86,12 +86,12 @@ public class JcrArchive extends AbstractArchive {
         }
         try {
             if (archiveRoot.hasNode(Constants.ROOT_DIR)) {
-                jcrRoot = new JcrEntry(null, archiveRoot.getNode(Constants.ROOT_DIR), Constants.ROOT_DIR, true);
+                jcrRoot = new JcrEntry(archiveRoot.getNode(Constants.ROOT_DIR), Constants.ROOT_DIR, true);
             } else {
-                jcrRoot = new JcrEntry(null, archiveRoot, archiveRoot.getName(), true);
+                jcrRoot = new JcrEntry(archiveRoot, archiveRoot.getName(), true);
             }
             if (archiveRoot.hasNode(Constants.META_DIR)) {
-                inf = loadMetaInf(new JcrEntry(null, archiveRoot.getNode(Constants.META_DIR), Constants.META_DIR, true));
+                inf = loadMetaInf(new JcrEntry(archiveRoot.getNode(Constants.META_DIR), Constants.META_DIR, true));
             } else {
                 inf = new DefaultMetaInf();
                 inf.setSettings(VaultSettings.createDefault());
@@ -104,10 +104,10 @@ public class JcrArchive extends AbstractArchive {
                 if (chRoot != null && chRoot.length() > 0) {
                     String[] roots = Text.explode(rootPath, '/');
                     if (roots.length > 0) {
-                        VirtualEntry newRoot = new VirtualEntry(null, jcrRoot.getName());
+                        VirtualEntry newRoot = new VirtualEntry(jcrRoot.getName());
                         VirtualEntry entry = newRoot;
                         for (String name: roots) {
-                            VirtualEntry newEntry = new VirtualEntry(entry, name);
+                            VirtualEntry newEntry = new VirtualEntry(name);
                             entry.children.put(name, newEntry);
                             entry = newEntry;
                         }
@@ -174,7 +174,7 @@ public class JcrArchive extends AbstractArchive {
      */
     @Override
     public Entry getRoot() throws IOException {
-        return new JcrEntry(null, archiveRoot, "", true);
+        return new JcrEntry(archiveRoot, "", true);
     }
 
     /**
@@ -271,14 +271,13 @@ public class JcrArchive extends AbstractArchive {
     /**
      * Implements a virtual entry for the intermediate directories
      */
-    private static class VirtualEntry extends AbstractEntry implements Entry {
+    private static class VirtualEntry implements Entry {
 
         private final String name;
 
         private Map<String, Entry> children = new LinkedHashMap<String, Entry>();
 
-        private VirtualEntry(VirtualEntry parent, String name) {
-            super(parent);
+        private VirtualEntry(String name) {
             this.name = name;
         }
 
@@ -318,7 +317,7 @@ public class JcrArchive extends AbstractArchive {
     /**
      * Implements an archive entry that is based on a JCR node
      */
-    private static class JcrEntry extends AbstractEntry implements Entry {
+    private static class JcrEntry implements Entry {
 
         private final Node node;
 
@@ -326,8 +325,7 @@ public class JcrArchive extends AbstractArchive {
 
         private final String name;
 
-        private JcrEntry(JcrEntry parent, Node node, String name, boolean isDir) {
-            super(parent);
+        private JcrEntry(Node node, String name, boolean isDir) {
             this.node = node;
             this.isDir = isDir;
             this.name = name;
@@ -378,7 +376,7 @@ public class JcrArchive extends AbstractArchive {
                             log.debug("Skipping node {} with unknown type {}.", child.getPath(), child.getPrimaryNodeType().getName());
                             continue;
                         }
-                        ret.add(new JcrEntry(this, child, name, isDir));
+                        ret.add(new JcrEntry(child, name, isDir));
                     }
                     return ret;
                 } catch (RepositoryException e) {
@@ -406,7 +404,7 @@ public class JcrArchive extends AbstractArchive {
                         log.debug("Skipping node {} with unknown type {}.", child.getPath(), child.getPrimaryNodeType().getName());
                         return null;
                     }
-                    return new JcrEntry(this, child, name, isDir);
+                    return new JcrEntry(child, name, isDir);
                 }
                 return null;
             } catch (RepositoryException e) {

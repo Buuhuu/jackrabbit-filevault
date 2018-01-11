@@ -150,7 +150,10 @@ public class MappedArchive extends AbstractArchive {
     /**
      * Implements a entry for this archive
      */
-    private static class VirtualEntry extends AbstractEntry implements Entry {
+    private static class VirtualEntry implements Entry {
+
+        @Nullable
+        private final VirtualEntry parent;
 
         @Nonnull
         private final String name;
@@ -162,13 +165,13 @@ public class MappedArchive extends AbstractArchive {
         private Map<String, VirtualEntry> children;
 
         private VirtualEntry() {
-            super(null);
+            this.parent = null;
             this.name = "";
             this.baseEntry = null;
         }
 
         private VirtualEntry(@Nonnull VirtualEntry parent, @Nonnull String name, @Nullable Archive.Entry baseEntry) {
-            super(parent);
+            this.parent = parent;
             this.name = name;
             this.baseEntry = baseEntry;
         }
@@ -180,6 +183,16 @@ public class MappedArchive extends AbstractArchive {
         @Nonnull
         public String getName() {
             return name;
+        }
+
+        @Nonnull
+        public String getPath() {
+            return getPath(new StringBuilder()).toString();
+        }
+
+        @Nonnull
+        private StringBuilder getPath(@Nonnull StringBuilder sb) {
+            return parent == null ? sb : parent.getPath(sb).append('/').append(name);
         }
 
         /**

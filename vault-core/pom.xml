@@ -181,7 +181,7 @@
             <groupId>org.xerial.snappy</groupId>
             <artifactId>snappy-java</artifactId>
             <version>1.1.7.1</version>
-            <scope>provider</scope>
+            <scope>provided</scope>
             <optional>true</optional>
         </dependency>
 

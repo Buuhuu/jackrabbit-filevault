@@ -125,7 +125,7 @@ public abstract class AbstractStreamArchive extends AbstractArchive {
 
         decompressed = new byte[maxBufferSize];
         pos = 0;
-        root = new EntryImpl(null, "");
+        root = new EntryImpl("");
         inf = new DefaultMetaInf();
 
         // scan the archive and copy data to temporary file
@@ -151,7 +151,7 @@ public abstract class AbstractStreamArchive extends AbstractArchive {
                             // copy stream
                             long pos = getPosition();
                             long len = copy(zin);
-                            je = je.add(new EntryImpl(je, names[i], safeGetTime(entry), pos, len));
+                            je = je.add(new EntryImpl(names[i], safeGetTime(entry), pos, len));
                         } else {
                             je = je.add(names[i]);
                         }
@@ -420,7 +420,7 @@ public abstract class AbstractStreamArchive extends AbstractArchive {
     /**
      * archive entry implementation
      */
-    private static class EntryImpl extends AbstractEntry implements Entry {
+    private static class EntryImpl implements Entry {
 
         public final String name;
 
@@ -432,16 +432,14 @@ public abstract class AbstractStreamArchive extends AbstractArchive {
 
         public Map<String, EntryImpl> children;
 
-        private EntryImpl(EntryImpl parent, String name) {
-            super(parent);
+        private EntryImpl(String name) {
             this.name = name;
             this.time = 0;
             pos = -1;
             len = 0;
         }
 
-        private EntryImpl(EntryImpl parent, String name, long time, long pos, long len) {
-            super(parent);
+        private EntryImpl(String name, long time, long pos, long len) {
             this.name = name;
             this.time = time;
             this.pos = pos;
@@ -476,7 +474,7 @@ public abstract class AbstractStreamArchive extends AbstractArchive {
                     return e;
                 }
             }
-            e = new EntryImpl(this, name);
+            e = new EntryImpl(name);
             children.put(name, e);
             return e;
         }

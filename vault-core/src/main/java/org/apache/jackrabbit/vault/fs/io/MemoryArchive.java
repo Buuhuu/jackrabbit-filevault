@@ -205,7 +205,9 @@ public class MemoryArchive extends AbstractArchive implements InputStreamPump.Pu
     /**
      * Implements a entry for this archive
      */
-    private static class VirtualEntry extends AbstractEntry implements Entry {
+    private static class VirtualEntry implements Entry {
+
+        private final VirtualEntry parent;
 
         private final String name;
 
@@ -216,7 +218,7 @@ public class MemoryArchive extends AbstractArchive implements InputStreamPump.Pu
         private Map<String, VirtualEntry> children;
 
         private VirtualEntry(VirtualEntry parent, String name, long time, byte[] data) {
-            super(parent);
+            this.parent = parent;
             this.name = name;
             this.time = time;
             this.data = data;
@@ -228,6 +230,16 @@ public class MemoryArchive extends AbstractArchive implements InputStreamPump.Pu
         @Override
         public String getName() {
             return name;
+        }
+
+        @Nonnull
+        public String getPath() {
+            return getPath(new StringBuilder()).toString();
+        }
+
+        @Nonnull
+        private StringBuilder getPath(@Nonnull StringBuilder sb) {
+            return parent == null ? sb : parent.getPath(sb).append('/').append(name);
         }
 
         /**

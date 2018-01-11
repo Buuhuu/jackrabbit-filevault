@@ -162,18 +162,6 @@ public class SubPackageFilterArchive implements Archive {
         }
 
         @Override
-        @Nonnull
-        public String getPath() {
-            return base.getPath();
-        }
-
-        @Override
-        @Nonnull
-        public String getRelPath() {
-            return base.getRelPath();
-        }
-
-        @Override
         public boolean isDirectory() {
             return base.isDirectory();
         }

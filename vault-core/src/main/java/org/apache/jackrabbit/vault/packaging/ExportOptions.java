@@ -42,8 +42,6 @@ public class ExportOptions {
 
     private String compressionMethod = "deflate";
 
-    private ExporterFactory exporterFactory = new DefaultExporterFactory();
-
     /**
      * Returns the progress tracker listener.
      * @return the progress tracker listener.
@@ -165,13 +163,5 @@ public class ExportOptions {
      */
     public String getCompressionMethod() {
         return compressionMethod;
-    }
-
-    public ExporterFactory getExporterFactory() {
-        return exporterFactory;
-    }
-
-    public void setExporterFactory(ExporterFactory exporterFactory) {
-        this.exporterFactory = exporterFactory;
     }
 }

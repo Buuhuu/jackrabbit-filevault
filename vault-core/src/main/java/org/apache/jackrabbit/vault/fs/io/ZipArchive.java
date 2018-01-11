@@ -101,7 +101,7 @@ public class ZipArchive extends AbstractArchive implements StoredArchive {
             return;
         }
         jar = new ZipFile(file);
-        root = new EntryImpl(null,"", true);
+        root = new EntryImpl("", true);
         inf = new DefaultMetaInf();
 
         Enumeration<ZipArchiveEntry> e = jar.getEntries();
@@ -274,7 +274,7 @@ public class ZipArchive extends AbstractArchive implements StoredArchive {
     /**
      * Implements the entry for this archive
      */
-    private static class EntryImpl extends AbstractEntry implements Entry {
+    private static class EntryImpl implements Entry {
 
         private final String name;
 
@@ -284,8 +284,7 @@ public class ZipArchive extends AbstractArchive implements StoredArchive {
 
         private Map<String, EntryImpl> children;
 
-        private EntryImpl(EntryImpl parent, @Nonnull String name, boolean directory) {
-            super(parent);
+        private EntryImpl(@Nonnull String name, boolean directory) {
             this.name = name;
             isDirectory = directory;
         }
@@ -307,7 +306,7 @@ public class ZipArchive extends AbstractArchive implements StoredArchive {
                     return ret;
                 }
             }
-            return add(new EntryImpl(this, name, isDirectory));
+            return add(new EntryImpl(name, isDirectory));
         }
 
         @Override

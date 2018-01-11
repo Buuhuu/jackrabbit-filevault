@@ -63,8 +63,8 @@ public class FileArchive extends AbstractArchive {
         if (!eRoot.isValid()) {
             throw new IOException("No " + Constants.ROOT_DIR + " found.");
         }
-        root = new OsEntry(null, eRoot.getRoot());
-        jcrRoot = new OsEntry(root, eRoot.getJcrRoot());
+        root = new OsEntry(eRoot.getRoot());
+        jcrRoot = new OsEntry(eRoot.getJcrRoot());
     }
 
     /**
@@ -124,12 +124,11 @@ public class FileArchive extends AbstractArchive {
         return new FileInputSource(file);
     }
 
-    private static class OsEntry extends AbstractEntry implements Entry {
+    private static class OsEntry implements Entry {
 
         private final File file;
 
-        private OsEntry(OsEntry parent, File file) {
-            super(parent);
+        private OsEntry(File file) {
             this.file = file;
         }
 
@@ -160,7 +159,7 @@ public class FileArchive extends AbstractArchive {
             }
             List<Entry> ret = new ArrayList<Entry>(files.length);
             for (File file: files) {
-                ret.add(new OsEntry(this, file));
+                ret.add(new OsEntry(file));
             }
             return ret;
         }
@@ -171,7 +170,7 @@ public class FileArchive extends AbstractArchive {
         @Override
         public Entry getChild(String name) {
             File child = new File(file, name);
-            return child.exists() ? new OsEntry(this, child) : null;
+            return child.exists() ? new OsEntry(child) : null;
         }
     }
     

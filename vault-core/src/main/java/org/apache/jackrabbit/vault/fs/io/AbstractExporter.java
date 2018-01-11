@@ -424,12 +424,12 @@ public abstract class AbstractExporter {
     public abstract void writeFile(VaultFile file, String relPath)
             throws RepositoryException, IOException;
 
-    public void write(Archive fromArchive, Archive.Entry fromEntry) throws IOException {
+    public void write(Archive fromArchive, Archive.Entry fromEntry, String relPath) throws IOException {
         if (fromEntry.isDirectory()) {
-            createDirectory(fromEntry.getRelPath());
+            createDirectory(relPath);
         } else {
             InputStream stream = fromArchive.openInputStream(fromEntry);
-            writeFile(stream, fromEntry.getRelPath());
+            writeFile(stream, relPath);
         }
     }
 }

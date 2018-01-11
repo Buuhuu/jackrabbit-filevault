@@ -165,10 +165,10 @@ public class JarExporter extends AbstractArchiveExporter<ZipArchiveOutputStream>
         }
     }
 
-    public void write(Archive archive, Archive.Entry entry) throws IOException {
+    public void write(Archive archive, Archive.Entry entry, String relPath) throws IOException {
         if (archive instanceof ZipArchive) {
             ZipFile zipFile = ((ZipArchive) archive).getZipFile();
-            ZipArchiveEntry zipEntry = zipFile.getEntry(entry.getRelPath());
+            ZipArchiveEntry zipEntry = zipFile.getEntry(relPath);
             if (zipEntry == null) {
                 // the entry doesn't exists, so it might have been created as intermediate of an existing entry.
                 // as we are copying entries from one archive to another, we skip that case as well
@@ -194,7 +194,30 @@ public class JarExporter extends AbstractArchiveExporter<ZipArchiveOutputStream>
                 archiveOut.setLevel(level);
             }
         } else {
-            super.write(archive, entry);
+            super.write(archive, entry, relPath);
+        }
+    }
+
+    @Deprecated
+    public void write(java.util.zip.ZipFile zip, java.util.zip.ZipEntry entry) throws IOException {
+        track("A", entry.getName());
+        if (!compressedLevel) {
+            // The entry to be written is assumed to be incompressible
+            archiveOut.setLevel(NO_COMPRESSION);
+        }
+        exportInfo.update(ExportInfo.Type.ADD, entry.getName());
+        ZipArchiveEntry copy = new ZipArchiveEntry(entry);
+        copy.setCompressedSize(-1);
+        archiveOut.putArchiveEntry(copy);
+        if (!entry.isDirectory()) {
+            // copy
+            InputStream in = zip.getInputStream(entry);
+            IOUtils.copy(in, archiveOut);
+            in.close();
+        }
+        archiveOut.closeArchiveEntry();
+        if (!compressedLevel) {
+            archiveOut.setLevel(level);
         }
     }
 }

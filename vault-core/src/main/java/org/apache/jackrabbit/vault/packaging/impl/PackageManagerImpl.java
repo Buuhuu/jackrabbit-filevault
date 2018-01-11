@@ -23,9 +23,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URISyntaxException;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.Set;
+import java.util.jar.JarFile;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -43,7 +46,6 @@ import org.apache.jackrabbit.vault.fs.config.MetaInf;
 import org.apache.jackrabbit.vault.fs.impl.AggregateManagerImpl;
 import org.apache.jackrabbit.vault.fs.io.AbstractExporter;
 import org.apache.jackrabbit.vault.fs.io.Archive;
-import org.apache.jackrabbit.vault.fs.io.JarExporter;
 import org.apache.jackrabbit.vault.fs.spi.ProgressTracker;
 import org.apache.jackrabbit.vault.packaging.ExportOptions;
 import org.apache.jackrabbit.vault.packaging.PackageId;
@@ -133,7 +135,7 @@ public class PackageManagerImpl implements PackageManager {
         }
 
         VaultFileSystem jcrfs = Mounter.mount(config, metaInf.getFilter(), addr, opts.getRootPath(), s);
-        AbstractExporter exporter = opts.getExporterFactory().createExporter(out, opts.getCompressionMethod(), opts.getCompressionLevel());
+        AbstractExporter exporter = new DefaultExporterFactory().createExporter(out, opts.getCompressionMethod(), opts.getCompressionLevel());
         exporter.setProperties(metaInf.getProperties());
         if (opts.getListener() != null) {
             exporter.setVerbose(opts.getListener());
@@ -185,7 +187,7 @@ public class PackageManagerImpl implements PackageManager {
         if (metaInf == null) {
             metaInf = new DefaultMetaInf();
         }
-        AbstractExporter exporter = opts.getExporterFactory().createExporter(out, opts.getCompressionMethod(), opts.getCompressionLevel());
+        AbstractExporter exporter = new DefaultExporterFactory().createExporter(out, opts.getCompressionMethod(), opts.getCompressionLevel());
         exporter.open();
         exporter.setProperties(metaInf.getProperties());
         ProgressTracker tracker = null;
@@ -198,15 +200,15 @@ public class PackageManagerImpl implements PackageManager {
         MetaInf inf = opts.getMetaInf();
         Archive archive = src.getArchive();
         archive.open(false);
-        Iterator<Archive.Entry> allEntries = new AllEntries(archive);
+        EntryTraversalIterator allEntries = new EntryTraversalIterator(archive);
+        StringBuilder pathBuilder = new StringBuilder();
         if (opts.getPostProcessor() == null) {
-
             // no post processor, we keep all files except the properties
             while (allEntries.hasNext()) {
-                Archive.Entry entry = allEntries.next();
-                String path = entry.getRelPath();
+                EntryHolder entry = allEntries.next();
+                String path = entry.relPath;
                 if (!path.equals(Constants.META_DIR + "/" + Constants.PROPERTIES_XML)) {
-                    exporter.write(archive, entry);
+                    exporter.write(archive, entry.entry, path);
                 }
             }
         } else {
@@ -216,10 +218,10 @@ public class PackageManagerImpl implements PackageManager {
             keep.add(Constants.META_DIR + "/" + Constants.CONFIG_XML);
             keep.add(Constants.META_DIR + "/" + Constants.FILTER_XML);
             while (allEntries.hasNext()) {
-                Archive.Entry entry = allEntries.next();
-                String path = entry.getRelPath();
+                EntryHolder entry = allEntries.next();
+                String path = entry.relPath;
                 if (!path.startsWith(Constants.META_DIR + "/") || keep.contains(path)) {
-                    exporter.write(archive, entry);
+                    exporter.write(archive, entry.entry, path);
                 }
             }
         }
@@ -254,39 +256,122 @@ public class PackageManagerImpl implements PackageManager {
         dispatcher.dispatch(type, id, related);
     }
 
-    /**
-     * An {@link Iterator} implementation traversing all entries of a given root excluding the root itself. A parent
-     * is guaranteed to be returned before its children.
-     */
-    protected static class AllEntries implements Iterator<Archive.Entry> {
+    protected static class EntryHolder {
 
-        private Iterator<? extends Archive.Entry> children;
-        private AllEntries current;
-        private Archive.Entry next;
+        protected final Archive.Entry entry;
+        protected final String relPath;
 
-        AllEntries(Archive archive) throws IOException {
-            this(archive.getRoot());
-            seek(); // we skip root
+        private EntryHolder(Archive.Entry entry, String relPath) {
+            this.entry = entry;
+            this.relPath = relPath;
         }
+    }
 
-        private AllEntries(Archive.Entry entry) {
-            this.children = entry.getChildren().iterator();
-            this.next = entry; // self
+    /**
+     * A Wrapper around {@link EntryTraversalIterator} that orders the {@link JarFile#MANIFEST_NAME} to the front.
+     */
+    protected static class AllEntries implements Iterator<EntryHolder> {
+
+        private final EntryTraversalIterator entries;
+        private Iterator<EntryHolder> cached;
+        private EntryHolder next;
+
+        AllEntries(Archive root) throws IOException {
+            entries = new EntryTraversalIterator(root);
+            // we want to return the manifest first so we iterate as long as we found it caching the results and moving it to the first
+            // position. If the original archive was a jar this is a iteration of 2 META-INF and META-INF/MANIFEST.MF, if not the
+            // entire entry tree will be duplicated in memory.
+            Deque<EntryHolder> cachedEntries = new LinkedList<>();
+            while (entries.hasNext()) {
+                EntryHolder nextEntry = entries.next();
+                if (JarFile.MANIFEST_NAME.equals(nextEntry.relPath)) {
+                    cachedEntries.addFirst(nextEntry);
+                    break;
+                } else {
+                    cachedEntries.addLast(nextEntry);
+                }
+            }
+            cached = cachedEntries.iterator();
+            seek();
         }
 
         private void seek() {
             next = null;
-            if (current == null) {
+            if (cached != null) {
+                if (cached.hasNext()) {
+                    next = cached.next();
+                } else {
+                    cached = null;
+                }
+            }
+            if (next == null && entries.hasNext()) {
+                next = entries.next();
+            }
+        }
+
+        @Override public boolean hasNext() {
+            return next != null;
+        }
+
+        @Override public EntryHolder next() {
+            EntryHolder current = next;
+            seek();
+            return current;
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    /**
+     * An {@link Iterator} implementation traversing all entries of a given root excluding the root itself. A parent
+     * is guaranteed to be returned before its children.
+     */
+    protected static class EntryTraversalIterator implements Iterator<EntryHolder> {
+
+        private final Archive.Entry self;
+        private final EntryTraversalIterator parent;
+        private EntryTraversalIterator current;
+        private Iterator<? extends Archive.Entry> children;
+        private EntryHolder next;
+
+        EntryTraversalIterator(Archive archive) throws IOException {
+            this(archive.getRoot(), null);
+            seek(); // we skip root
+        }
+
+        private EntryTraversalIterator(Archive.Entry entry, EntryTraversalIterator parent) {
+            this.self = entry;
+            this.parent = parent;
+            this.children = entry.getChildren().iterator();
+
+            StringBuilder path = getPath(new StringBuilder());
+            this.next = new EntryHolder(entry, path.length() > 0 ? path.substring(1) : path.toString());
+        }
+
+        private StringBuilder getPath(StringBuilder builder) {
+            return parent == null ? builder : parent.getPath(builder).append('/').append(self.getName());
+        }
+
+        private String getChildPath(Archive.Entry child) {
+            return getPath(new StringBuilder()).append('/').append(child.getName()).substring(1);
+        }
+
+        private void seek() {
+            next = null;
+            if (next == null && current == null) {
                 if (children.hasNext()) {
                     Archive.Entry child = children.next();
                     if (child.isDirectory()) {
-                        current = new AllEntries(child);
+                        current = new EntryTraversalIterator(child, this);
                     } else {
-                        next = child;
+                        next = new EntryHolder(child, getChildPath(child));
                     }
                 }
             }
-            if (current != null) {
+            if (next == null && current != null) {
                 if (current.hasNext()) {
                     next = current.next();
                 } else {
@@ -302,8 +387,8 @@ public class PackageManagerImpl implements PackageManager {
         }
 
         @Override
-        public Archive.Entry next() {
-            Archive.Entry current = next;
+        public EntryHolder next() {
+            EntryHolder current = next;
             seek();
             return current;
         }
